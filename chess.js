@@ -1081,7 +1081,22 @@ async function loadJsonFromUrl(url){
   return await res.json();
 }
 
+// === Simple Engine (Elo < 600) ===
+let simpleEngine = null;
+let awaitingSimpleMove = false;
 
+function initSimpleEngine(){
+  if(simpleEngine) return;
+  simpleEngine = new Worker('simple-engine-worker.js');
+  simpleEngine.onmessage = (e)=>{
+    const m = e.data.move;
+    if(!m) return;
+    awaitingSimpleMove = false;
+    withMoveSource('engine', () =>
+      applyMove(m.sr, m.sc, m.er, m.ec)
+    );
+  };
+}
 
 // Multi-pack helpers (manifest + merge)
 async function fetchJson(url){
