@@ -755,9 +755,10 @@ function pickFromBook(){
 
 
 // ===============================
-// Stockfish Engine (replaces old minimax worker)
+// Stockfish Engine (GitHub Pages safe)
+// Uses a SAME-ORIGIN loader worker (sf-loader.js) to bypass cross-origin Worker restrictions.
 // ===============================
-const STOCKFISH_URL = 'https://cdn.jsdelivr.net/npm/stockfish@16/stockfish.js';
+const STOCKFISH_WORKER_URL = 'sf-loader.js';
 let stockfish=null;
 let stockfishReady=false;
 let sfQueue=[];
@@ -776,9 +777,9 @@ function sfNoticeError(msg){
 function initStockfish(){
   if(stockfish) return;
   try{
-    stockfish = new Worker(STOCKFISH_URL);
+    stockfish = new Worker(STOCKFISH_WORKER_URL);
   }catch(err){
-    sfNoticeError('Unable to start engine worker. Are you running from http:// (not file://)?');
+    sfNoticeError('Unable to start engine worker. (Blocked by browser security policy)');
     throw err;
   }
 
@@ -789,7 +790,6 @@ function initStockfish(){
 
   stockfish.onmessage = (e)=>{
     const line = (typeof e.data==='string')?e.data:'';
-    // Uncomment for debugging:
     // console.log('[SF]', line);
 
     if(line==='uciok'){
@@ -799,7 +799,6 @@ function initStockfish(){
 
     if(line==='readyok'){
       stockfishReady=true;
-      // flush queued commands
       for(const cmd of sfQueue) stockfish.postMessage(cmd);
       sfQueue=[];
       return;
@@ -812,7 +811,6 @@ function initStockfish(){
     }
   };
 
-  // Start handshake
   stockfish.postMessage('uci');
 }
 
@@ -833,7 +831,6 @@ function stopSearch(){
 }
 
 function sendPositionToStockfish(){
-  // Do not clear readiness; just set new position
   sfSend('ucinewgame');
   const fen = boardToFen();
   sfSend('position fen ' + fen);
