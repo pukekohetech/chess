@@ -72,11 +72,27 @@ textarea{width:100%;box-sizing:border-box;font-family:ui-monospace, SFMono-Regul
 
 @media (max-width:980px){:root{--sq:clamp(44px,10vw,78px);}#history{height:180px;}}
 
-/* ===== Strength slider UI ===== */
-.elo-panel{margin:10px 0 6px; padding:10px 12px; border:1px solid rgba(255,255,255,.12); border-radius:10px; background:rgba(0,0,0,.12)}
-.elo-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:8px}
-.elo-title{font-weight:700; opacity:.9}
-.elo-readout{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:14px; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.10)}
-.elo-controls input[type=range]{width:min(560px, 100%); accent-color:#7aa2ff;}
-.elo-scale{display:flex; justify-content:space-between; font-size:12px; opacity:.75; margin-top:4px}
-.elo-help{font-size:12px; opacity:.7; margin-top:6px}
+/* ===== Engine strength (Elo) card ===== */
+.strength-card{margin:10px 0 6px; padding:12px 14px; border-radius:14px;
+  background: linear-gradient(180deg, rgba(122,162,255,.14), rgba(0,0,0,.10));
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow: 0 6px 22px rgba(0,0,0,.18);
+}
+.strength-row{display:flex; justify-content:space-between; gap:10px; align-items:center;}
+.strength-title{font-weight:800; letter-spacing:.2px; opacity:.92}
+.strength-pill{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  font-size:13px; padding:4px 10px; border-radius:999px;
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.14);
+}
+#strengthSlider{flex:1; min-width:260px; accent-color:#7aa2ff; height:22px;}
+.strength-scale{display:flex; justify-content:space-between; font-size:12px; opacity:.75; margin-top:6px}
+.strength-help{font-size:12px; opacity:.78; margin-top:8px; line-height:1.25}
+.btn-mini{border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.10);
+  color:inherit; border-radius:10px; padding:6px 10px; cursor:pointer;
+}
+.btn-mini:hover{background:rgba(255,255,255,.16)}
+@media (max-width:520px){
+  .strength-row{flex-direction:column; align-items:stretch}
+  #strengthSlider{min-width:100%}
+}

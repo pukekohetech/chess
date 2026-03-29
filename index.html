@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Chess — Stockfish 16 (Offline + Strength Slider)</title>
+<title>Chess — Stockfish 16 (Offline + Elo Slider)</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -37,21 +37,37 @@
 
      
 
-<div class="elo-panel" id="eloPanel">
-  <div class="elo-head">
-    <div class="elo-title">Engine strength</div>
-    <div class="elo-readout" id="strengthReadout">Unlimited</div>
+<div class="strength-card" id="strengthCard">
+  <div class="strength-row">
+    <div class="strength-title">Engine strength</div>
+    <div class="strength-pill" id="strengthReadout">Unlimited</div>
   </div>
-  <div class="elo-controls">
-    <input type="range" id="strengthSlider" min="0" max="3190" step="25" value="0" />
-    <div class="elo-scale">
-      <span>Unlimited</span>
-      <span>Beginner</span>
-      <span>Club</span>
-      <span>Strong</span>
-    </div>
-    <div class="elo-help" id="strengthHelp">0 = Unlimited. 1–1319 adjusts “Skill Level”. 1320–3190 sets Elo target.</div>
+  <div class="strength-row" style="gap:12px; align-items:center; flex-wrap:wrap;">
+    <input type="range" id="strengthSlider" min="0" max="3190" step="10" value="0" list="strengthTicks" />
+    <datalist id="strengthTicks">
+      <option value="0" label="∞"></option>
+      <option value="400" label="400"></option>
+      <option value="600" label="600"></option>
+      <option value="800" label="800"></option>
+      <option value="1000" label="1000"></option>
+      <option value="1200" label="1200"></option>
+      <option value="1320" label="1320"></option>
+      <option value="1600" label="1600"></option>
+      <option value="2000" label="2000"></option>
+      <option value="2400" label="2400"></option>
+      <option value="2800" label="2800"></option>
+      <option value="3190" label="3190"></option>
+    </datalist>
+    <button class="btn-mini" id="strengthReset" type="button" title="Unlimited">Reset</button>
   </div>
+  <div class="strength-scale">
+    <span>Unlimited</span>
+    <span>600</span>
+    <span>1200</span>
+    <span>2000</span>
+    <span>3190</span>
+  </div>
+  <div class="strength-help" id="strengthHelp">Slide to set Elo (400–3190). Values below 1320 are approximated via Skill Level.</div>
 </div>
 
  <label>Board size: <input type="range" id="boardSize" min="56" max="140" value="96"></label>

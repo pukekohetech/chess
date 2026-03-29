@@ -1,12 +1,9 @@
-# Chess — Stockfish 16 Offline + Strength Slider
+# Chess — Stockfish 16 Offline + Elo Slider (400–3190)
 
-## What you get
-- A clearer strength slider with a big readout.
-- Slider supports **very low** levels using Stockfish `Skill Level` (0–20).
-- For higher values it switches to Elo limiter (`UCI_LimitStrength` + `UCI_Elo`).
-
-## Notes
-Stockfish `UCI_Elo` typically supports **1320–3190**. Below that, the app uses `Skill Level` instead.
+## UI
+- Shows Elo all the way down to **400**.
+- Below **1320**, the displayed Elo is an approximation (Stockfish itself usually limits UCI_Elo to ~1320–3190).
+- Under the hood, the app uses Stockfish `Skill Level` for those lower Elo values.
 
 ## Required engine files
 Keep these next to `index.html`:
