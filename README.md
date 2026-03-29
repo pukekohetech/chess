@@ -1,9 +1,9 @@
-# Chess — Tidy Light Theme + Elo Slider
+# Chess — Google-y UI (Elo under eval bar)
 
-## Fixes
-- No more `stopSearch is not defined` (engine uses `sfStopSearch()` internally).
-- Light theme so the board stays visible.
-- Strength slider is compact (max ~460px), not full-width.
+## Changes
+- Engine strength (Elo) control sits directly under the evaluation bar.
+- Clean Google-y styling (light background, white surfaces, subtle borders).
+- Slider width is capped (~380px on desktop).
 
 ## Engine files required
 Keep these next to index.html:

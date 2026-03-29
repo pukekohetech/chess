@@ -773,7 +773,6 @@ const UCI_ELO_MIN = 1320;
 const UCI_ELO_MAX = 3190;
 const DISPLAY_ELO_MIN = 400;
 
-// Local square label helper (avoid dependency on other globals)
 const sqLabel = (r,c)=> String.fromCharCode(97+c) + (8-r);
 
 let stockfish=null;
@@ -792,6 +791,11 @@ function sfStopSearch(){
   if(typeof thinkingEl!=='undefined' && thinkingEl) thinkingEl.style.display='none';
   if(typeof stopBtn!=='undefined' && stopBtn) stopBtn.style.display='none';
   if(sfFallbackTimer){ clearTimeout(sfFallbackTimer); sfFallbackTimer=null; }
+}
+
+function stopSearch(){
+  // compatibility (the rest of the app may call stopSearch)
+  sfStopSearch();
 }
 
 function sfNoticeError(msg){
@@ -887,7 +891,7 @@ function applyStrengthFromSlider(){
 
   if(elo < UCI_ELO_MIN){
     const skill = skillFromDisplayElo(elo);
-    if(strengthHelpEl) strengthHelpEl.textContent = 'Approx Elo (uses Skill Level ' + skill + '/20 internally).';
+    if(strengthHelpEl) strengthHelpEl.textContent = 'Approx Elo (Skill Level ' + skill + '/20 internally).';
     sfSend('setoption name UCI_LimitStrength value false');
     sfSend('setoption name Skill Level value ' + skill);
     return;
@@ -917,11 +921,6 @@ function applyStrengthFromSlider(){
     });
   }
 })();
-
-function stopSearch(){
-  // Keep compatibility for other callers in the app.
-  sfStopSearch();
-}
 
 function sendPositionToStockfish(){
   sfSend('ucinewgame');

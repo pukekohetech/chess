@@ -9,48 +9,6 @@
 <body>
 <div id="errBox"></div>
 
-
-<div class="strength-card" id="strengthCard">
-  <div class="strength-top">
-    <div>
-      <div class="strength-title">Engine strength</div>
-      <div class="strength-sub">Elo shown down to 400. Below 1320 uses Skill Level internally.</div>
-    </div>
-    <div class="strength-pill" id="strengthReadout">Unlimited</div>
-  </div>
-
-  <div class="strength-controls">
-    <input type="range" id="strengthSlider" min="0" max="3190" step="25" value="0" list="strengthTicks" aria-label="Engine strength" />
-    <datalist id="strengthTicks">
-      <option value="0" label="∞"></option>
-      <option value="400" label="400"></option>
-      <option value="600" label="600"></option>
-      <option value="800" label="800"></option>
-      <option value="1000" label="1000"></option>
-      <option value="1200" label="1200"></option>
-      <option value="1320" label="1320"></option>
-      <option value="1600" label="1600"></option>
-      <option value="2000" label="2000"></option>
-      <option value="2400" label="2400"></option>
-      <option value="2800" label="2800"></option>
-      <option value="3190" label="3190"></option>
-    </datalist>
-
-    <div class="strength-row">
-      <div class="strength-scale">
-        <span>Unlimited</span>
-        <span>600</span>
-        <span>1200</span>
-        <span>2000</span>
-        <span>3190</span>
-      </div>
-      <button class="btn-mini" id="strengthReset" type="button">Reset</button>
-    </div>
-    <div class="strength-help" id="strengthHelp"></div>
-  </div>
-</div>
-
-
 <div id="promoOverlay">
   <div id="promoModal" role="dialog" aria-modal="true" aria-label="Promote pawn">
     <p id="promoTitle">Promote pawn</p>
@@ -110,6 +68,38 @@
     </div>
 
     <div class="panel">
+
+<div class="strength-card" id="strengthCard">
+  <div class="strength-top">
+    <div class="strength-title">Engine strength</div>
+    <div class="strength-pill" id="strengthReadout">Unlimited</div>
+  </div>
+  <div class="strength-sub">Elo shows down to 400 (below 1320 uses Skill Level internally).</div>
+  <div class="strength-controls">
+    <input type="range" id="strengthSlider" min="0" max="3190" step="25" value="0" list="strengthTicks" aria-label="Engine strength" />
+    <datalist id="strengthTicks">
+      <option value="0" label="∞"></option>
+      <option value="400" label="400"></option>
+      <option value="600" label="600"></option>
+      <option value="800" label="800"></option>
+      <option value="1000" label="1000"></option>
+      <option value="1200" label="1200"></option>
+      <option value="1320" label="1320"></option>
+      <option value="1600" label="1600"></option>
+      <option value="2000" label="2000"></option>
+      <option value="2400" label="2400"></option>
+      <option value="2800" label="2800"></option>
+      <option value="3190" label="3190"></option>
+    </datalist>
+    <div class="strength-actions">
+      <div class="strength-scale"><span>∞</span><span>600</span><span>1200</span><span>2000</span><span>3190</span></div>
+      <button class="btn-mini" id="strengthReset" type="button">Reset</button>
+    </div>
+    <div class="strength-help" id="strengthHelp"></div>
+  </div>
+</div>
+
+
       <h3 style="margin:0 0 8px;">Move History (click to jump)</h3>
       <div id="history"></div>
       <div class="small" style="margin-top:8px;">Tip: click a move to time-travel; playing from the past truncates the future.</div>
