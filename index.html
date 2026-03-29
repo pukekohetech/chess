@@ -112,18 +112,6 @@
     </div>
   </div>
 
-  <div class="trainingHelpBar">
-    <div class="helpRadios" role="radiogroup" aria-label="Training help level">
-      <span class="helpLabel">Help:</span>
-      <label class="helpOpt"><input type="radio" name="trainHelp" id="trainHelpGuided" value="guided" checked> Guided</label>
-      <label class="helpOpt"><input type="radio" name="trainHelp" id="trainHelpCoach" value="coach"> Coach</label>
-      <label class="helpOpt"><input type="radio" name="trainHelp" id="trainHelpOff" value="off"> Off</label>
-    </div>
-    <div id="trainHowTo" class="trainHowTo" style="display:none;">How to move: tap the <b>blue</b> FROM square, then tap the <b>pulsing blue</b> TO square.</div>
-  </div>
-
-
-
   <div class="trainingLoad">
     <button id="trainLoadRepo" type="button">Load from repo</button>
     <label class="filePick">Openings JSON<input id="trainOpeningsFile" type="file" accept="application/json" /></label>
@@ -166,13 +154,7 @@
     <div class="trainNote" id="tacInfo"></div>
   </div>
 
-  
-  <div class="trainBtns" id="trainAssistBtns">
-    <button id="trainShowHint" type="button">Show hint</button>
-    <button id="trainShowMove" type="button">Show move</button>
-  </div>
-
-<div class="trainingStatus" id="trainingStatus">Load training data to begin.</div>
+  <div class="trainingStatus" id="trainingStatus">Load training data to begin.</div>
 </div>
 
 
@@ -199,22 +181,5 @@
   </div>
 </div>
 <script src="chess.js"></script>
-
-<div id="trainOverlay" class="trainOverlay" style="display:none;" aria-hidden="true">
-  <div class="trainOverlayCard" role="dialog" aria-modal="true" aria-label="How to move">
-    <div class="trainOverlayTitle">How to move</div>
-    <div class="trainOverlayBody">
-      <ol>
-        <li>Tap the <b>blue</b> square (FROM).</li>
-        <li>Tap the <b>pulsing blue</b> square (TO).</li>
-      </ol>
-      <div class="small">Tip: In training, we highlight the exact squares to tap.</div>
-    </div>
-    <div class="trainOverlayBtns">
-      <button id="trainOverlayGotIt" type="button">Got it</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>

@@ -132,26 +132,3 @@ button:hover{background:var(--g-surface-2) !important;}
   .strength-controls input[type=range], .strength-actions{width:100%;}
 }
 
-
-
-/* ===== Training guided help ===== */
-.trainingHelpBar{display:flex;flex-direction:column;gap:6px;margin:10px 0 0;}
-.helpRadios{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--g-text,#202124);font-size:13px;}
-.helpLabel{color:var(--g-muted,#5f6368);}
-.helpOpt{display:inline-flex;align-items:center;gap:6px;}
-.trainHowTo{color:var(--g-muted,#5f6368);font-size:12px;line-height:1.35;}
-#trainAssistBtns{margin-top:8px;}
-
-/* Stronger from/to visuals in guided mode */
-.square.hintFrom{outline:4px solid rgba(26,115,232,.85);outline-offset:-4px;}
-.square.hintTo{position:relative;}
-.square.hintTo::before{content:"";position:absolute;inset:8px;border-radius:14px;border:3px solid rgba(26,115,232,.65);animation:trainPulse 1.05s infinite;}
-@keyframes trainPulse{0%{transform:scale(.98);opacity:.55}50%{transform:scale(1.03);opacity:1}100%{transform:scale(.98);opacity:.55}}
-
-/* Overlay */
-.trainOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9999;padding:14px;}
-.trainOverlayCard{background:#fff;border:1px solid rgba(32,33,36,.14);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.25);padding:14px;width:min(420px, 92vw);}
-.trainOverlayTitle{font-weight:800;margin-bottom:8px;}
-.trainOverlayBody{color:#202124;font-size:14px;}
-.trainOverlayBody ol{margin:8px 0 10px 18px;}
-.trainOverlayBtns{display:flex;justify-content:flex-end;gap:10px;margin-top:10px;}

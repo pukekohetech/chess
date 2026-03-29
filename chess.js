@@ -1007,7 +1007,8 @@ hintBtn.addEventListener('click', ()=>{
 clearHintBtn.addEventListener('click', ()=>{ hintMove=null; notice(''); render(); });
 
 function maybeAiMove(){
-  if(!vsCompEl.checked || gameOver) return;
+  if(typeof trainingActive!=='undefined' && trainingActive) return;
+if(!vsCompEl.checked || gameOver) return;
   const human=humanSideEl.value;
   const aiColor=(human==='white')?'black':'white';
   if(turn!==aiColor) return;
@@ -1035,8 +1036,38 @@ let trainingActive = false;
 let openingState = null;
 let tacticState = null;
 
-let helpLevel = (store && store.get) ? (store.get('chess_train_help') || 'guided') : 'guided';
-let helpSeen = (store && store.get) ? (store.get('chess_train_seen') || '0') : '0';
+// Training/Play mode interlock (auto-disable Play vs Computer during training)
+let __prevVsComp = null;
+let __prevHumanSide = null;
+function enterTrainingMode(){
+  try{
+    if(__prevVsComp===null){
+      __prevVsComp = !!vsCompEl.checked;
+      __prevHumanSide = humanSideEl ? humanSideEl.value : null;
+    }
+    // stop any engine search before freezing play-vs-computer
+    try{ stopSearch(); }catch(_e){}
+    if(vsCompEl){
+      vsCompEl.checked = false;
+      // fire change event so UI/state updates stay consistent
+      vsCompEl.dispatchEvent(new Event('change'));
+    }
+  }catch(_e){}
+}
+
+function exitTrainingMode(){
+  try{
+    if(__prevVsComp===null) return;
+    if(vsCompEl){
+      vsCompEl.checked = __prevVsComp;
+      vsCompEl.dispatchEvent(new Event('change'));
+    }
+    if(humanSideEl && __prevHumanSide) humanSideEl.value = __prevHumanSide;
+  }catch(_e){}
+  __prevVsComp = null;
+  __prevHumanSide = null;
+}
+
 
 const trainTabOpenings = document.getElementById('trainTabOpenings');
 const trainTabTactics = document.getElementById('trainTabTactics');
@@ -1062,60 +1093,8 @@ const tacMaxEl = document.getElementById('tacMax');
 const tacThemesEl = document.getElementById('tacThemes');
 const nextTacticBtn = document.getElementById('nextTactic');
 const tacInfoEl = document.getElementById('tacInfo');
-const trainHelpGuidedEl = document.getElementById('trainHelpGuided');
-const trainHelpCoachEl  = document.getElementById('trainHelpCoach');
-const trainHelpOffEl    = document.getElementById('trainHelpOff');
-const trainHowToEl      = document.getElementById('trainHowTo');
-const trainShowHintBtn  = document.getElementById('trainShowHint');
-const trainShowMoveBtn  = document.getElementById('trainShowMove');
-const trainOverlayEl    = document.getElementById('trainOverlay');
-const trainOverlayGotIt = document.getElementById('trainOverlayGotIt');
 
-
-function setTrainingStatus(msg){ if(trainingStatusEl) trainingStatusEl.textContent = msg; updateHelpUi(); }
-
-function updateHelpUi(){
-  const on = (helpLevel !== 'off');
-  if(trainHowToEl) trainHowToEl.style.display = (on && trainingActive) ? 'block' : 'none';
-  if(trainShowHintBtn) trainShowHintBtn.style.display = on ? 'inline-block' : 'none';
-  if(trainShowMoveBtn) trainShowMoveBtn.style.display = (helpLevel === 'guided') ? 'inline-block' : 'none';
-}
-
-function maybeShowOverlayOnce(){
-  if(helpLevel !== 'guided') return;
-  try{ helpSeen = store.get('chess_train_seen') || '0'; }catch(_e){}
-  if(helpSeen === '1') return;
-  if(!trainOverlayEl) return;
-  trainOverlayEl.style.display = 'flex';
-  trainOverlayEl.setAttribute('aria-hidden','false');
-}
-
-function hideOverlay(){
-  if(!trainOverlayEl) return;
-  trainOverlayEl.style.display = 'none';
-  trainOverlayEl.setAttribute('aria-hidden','true');
-  try{ store.set('chess_train_seen','1'); }catch(_e){}
-}
-
-if(trainOverlayGotIt){
-  trainOverlayGotIt.addEventListener('click', hideOverlay);
-}
-
-function setExpectedHintFromUci(uci){
-  if(!uci) return;
-  try{
-    const m = uciToMove(uci);
-    hintMove = {sr:m.sr, sc:m.sc, er:m.er, ec:m.ec, source:'trainer'};
-    render();
-  }catch(_e){}
-}
-
-function currentExpectedUci(){
-  if(openingState) return openingState.moves[openingState.idx];
-  if(tacticState) return tacticState.solution[tacticState.idx];
-  return null;
-}
-
+function setTrainingStatus(msg){ if(trainingStatusEl) trainingStatusEl.textContent = msg; }
 
 function setTab(mode){
   trainingMode = mode;
@@ -1128,26 +1107,6 @@ function setTab(mode){
 if(trainTabOpenings) trainTabOpenings.addEventListener('click', ()=> setTab('openings'));
 if(trainTabTactics) trainTabTactics.addEventListener('click', ()=> setTab('tactics'));
 setTab('openings');
-
-function syncHelpRadios(){
-  if(trainHelpGuidedEl) trainHelpGuidedEl.checked = helpLevel==='guided';
-  if(trainHelpCoachEl)  trainHelpCoachEl.checked  = helpLevel==='coach';
-  if(trainHelpOffEl)    trainHelpOffEl.checked    = helpLevel==='off';
-}
-
-function setHelpLevel(lvl){
-  helpLevel = lvl;
-  try{ store.set('chess_train_help', lvl); }catch(_e){}
-  syncHelpRadios();
-  updateHelpUi();
-}
-
-syncHelpRadios();
-
-if(trainHelpGuidedEl) trainHelpGuidedEl.addEventListener('change', ()=>{ if(trainHelpGuidedEl.checked) setHelpLevel('guided'); });
-if(trainHelpCoachEl)  trainHelpCoachEl.addEventListener('change',  ()=>{ if(trainHelpCoachEl.checked)  setHelpLevel('coach'); });
-if(trainHelpOffEl)    trainHelpOffEl.addEventListener('change',    ()=>{ if(trainHelpOffEl.checked)    setHelpLevel('off'); });
-
 
 async function loadJsonFromUrl(url){
   const res = await fetch(url, {cache:'no-store'});
@@ -1263,12 +1222,6 @@ function setPositionFromFenOrStart(fen){
 
 function autoPlayUciMove(uci){
   const m = uciToMove(uci);
-  try{ stopSearch(); }catch(_e){}
-  if(typeof validMove==='function' && !validMove(m.sr,m.sc,m.er,m.ec,true)) {
-    setTrainingStatus('⚠️ Training line diverged (illegal move '+uci+'). Stopping training.');
-    stopTraining();
-    return;
-  }
   withMoveSource('trainer', ()=> applyMove(m.sr,m.sc,m.er,m.ec,m.promo));
 }
 
@@ -1280,8 +1233,6 @@ function openingAutoAdvance(){
     const colorToPlay = (typeof turn!=='undefined') ? turn : null;
     if(colorToPlay === openingState.studentColor){
       setTrainingStatus(`Opening: Your move (${openingState.studentColor}). Step ${openingState.idx+1}/${openingState.moves.length}`);
-    if(helpLevel!=='off'){ setExpectedHintFromUci(expected); }
-    if(helpLevel==='guided'){ maybeShowOverlayOnce(); }
       return;
     }
     // opponent move
@@ -1291,9 +1242,11 @@ function openingAutoAdvance(){
   trainingActive = false;
   openingState = null;
   setTrainingStatus('Opening line complete ✅');
+  exitTrainingMode();
 }
 
 function startOpeningTraining(){
+  enterTrainingMode();
   const o = getSelectedOpening();
   if(!o){ setTrainingStatus('No openings loaded.'); return; }
   const lineIdx = parseInt(openingLineSelect.value,10) || 0;
@@ -1309,12 +1262,10 @@ function startOpeningTraining(){
     lineName: ln.name || ('Line '+(lineIdx+1)),
     studentColor: (openingSideSelect ? openingSideSelect.value : (o.side||'white')),
     moves: ln.movesUci.slice(),
-    accept: (ln.acceptUci || {}),
     idx: 0
   };
 
   // Let board settle then auto-advance
-  if(helpLevel==='guided') maybeShowOverlayOnce();
   setTimeout(openingAutoAdvance, 30);
 }
 
@@ -1322,7 +1273,8 @@ function stopTraining(){
   trainingActive = false;
   openingState = null;
   tacticState = null;
-  hintMove=null; render(); setTrainingStatus('Training stopped.');
+  setTrainingStatus('Training stopped.');
+  exitTrainingMode();
 }
 
 if(startOpeningBtn) startOpeningBtn.addEventListener('click', startOpeningTraining);
@@ -1346,6 +1298,7 @@ function pickNextTactic(){
 }
 
 function startTactic(t){
+  enterTrainingMode();
   setPositionFromFenOrStart(t.fen);
   trainingActive = true;
   tacticState = {
@@ -1363,8 +1316,6 @@ function startTactic(t){
 
   setTimeout(()=>{
     setTrainingStatus('Tactic: find the best move.');
-  if(helpLevel!=='off'){ setExpectedHintFromUci(t.solution[0]); }
-  if(helpLevel==='guided'){ maybeShowOverlayOnce(); }
   }, 30);
 }
 
@@ -1373,35 +1324,9 @@ function nextTactic(){
   const t = pickNextTactic();
   if(!t){ setTrainingStatus('No tactics match your filters.'); return; }
   startTactic(t);
-  if(helpLevel==='guided') maybeShowOverlayOnce();
 }
 
 if(nextTacticBtn) nextTacticBtn.addEventListener('click', nextTactic);
-
-if(trainShowHintBtn){
-  trainShowHintBtn.addEventListener('click', ()=>{
-    const uci = currentExpectedUci();
-    setExpectedHintFromUci(uci);
-    setTrainingStatus('Hint shown. Tap blue FROM, then pulsing TO.');
-  });
-}
-
-if(trainShowMoveBtn){
-  trainShowMoveBtn.addEventListener('click', ()=>{
-    const uci = currentExpectedUci();
-    if(!uci) return;
-    // Only auto-play if it is currently the student's turn
-    const colorToPlay = (typeof turn!=='undefined') ? turn : null;
-    const student = openingState ? openingState.studentColor : (tacticState ? tacticState.studentColor : null);
-    if(student && colorToPlay && colorToPlay !== student){
-      setTrainingStatus('Wait — the lesson is playing the other side.');
-      return;
-    }
-    setTrainingStatus('Showing the move… now copy it next time.');
-    autoPlayUciMove(uci);
-  });
-}
-
 
 // Hook into user moves by wrapping applyMove after it exists
 (function hookUserMoves(){
@@ -1439,12 +1364,11 @@ function trainingOnUserMove(uci){
   if(openingState){
     const expected = openingState.moves[openingState.idx];
     if(!expected){
-      trainingActive=false; openingState=null; setTrainingStatus('Opening complete ✅'); return;
+      trainingActive=false; openingState=null; setTrainingStatus('Opening complete ✅');
+      exitTrainingMode(); return;
     }
-    const extra = (openingState.accept && openingState.accept[String(openingState.idx)]) || null;
-    const allowed = Array.isArray(extra) ? Array.from(new Set([expected, ...extra])) : [expected];
-    if(!allowed.includes(uci)){
-      setTrainingStatus(`❌ Not quite. Expected one of ${allowed.join(", ")}. Try again.`);
+    if(uci !== expected){
+      setTrainingStatus(`❌ Not quite. Expected ${expected}. Try again.`);
       // Undo the wrong move
       if(typeof undoBtn!=='undefined' && undoBtn) undoBtn.click();
       // Show hint arrow
@@ -1469,7 +1393,8 @@ function trainingOnUserMove(uci){
   if(tacticState){
     const expected = tacticState.solution[tacticState.idx];
     if(!expected){
-      trainingActive=false; tacticState=null; setTrainingStatus('Puzzle solved ✅'); return;
+      trainingActive=false; tacticState=null; setTrainingStatus('Puzzle solved ✅');
+  exitTrainingMode(); return;
     }
     if(uci !== expected){
       setTrainingStatus(`❌ Try again. Expected ${expected}.`);
@@ -1502,5 +1427,6 @@ function trainingOnUserMove(uci){
     trainingActive=false;
     tacticState=null;
     setTrainingStatus('Puzzle solved ✅');
+  exitTrainingMode();
   }
 }
