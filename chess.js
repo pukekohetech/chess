@@ -756,11 +756,11 @@ function pickFromBook(){
 
 // Worker engine (used for hint + AI)
 // ===============================
-// Stockfish 16 (single-threaded) — OFFLINE + Elo slider (400–3190 display)
+// Stockfish 16 (single-threaded) — OFFLINE + Elo slider
 // Required files next to index.html:
 //   - stockfish-nnue-16-single.js
 //   - stockfish-nnue-16-single.wasm
-// Notes: Stockfish UCI_Elo commonly supports ~1320–3190. Below that we approximate using Skill Level.
+// Notes: UCI_Elo is commonly 1320–3190. Below 1320 we approximate with Skill Level.
 // ===============================
 const STOCKFISH_WORKER_URL = 'stockfish-nnue-16-single.js';
 
@@ -773,6 +773,7 @@ const UCI_ELO_MIN = 1320;
 const UCI_ELO_MAX = 3190;
 const DISPLAY_ELO_MIN = 400;
 
+// Local square label helper (avoid dependency on other globals)
 const sqLabel = (r,c)=> String.fromCharCode(97+c) + (8-r);
 
 let stockfish=null;
@@ -782,6 +783,16 @@ let pendingHintSF=false;
 let awaitingAIMoveSF=false;
 let sfSearching=false;
 let sfFallbackTimer=null;
+
+function sfStopSearch(){
+  try{ if(stockfish) stockfish.postMessage('stop'); }catch(_e){}
+  sfSearching=false;
+  pendingHintSF=false;
+  awaitingAIMoveSF=false;
+  if(typeof thinkingEl!=='undefined' && thinkingEl) thinkingEl.style.display='none';
+  if(typeof stopBtn!=='undefined' && stopBtn) stopBtn.style.display='none';
+  if(sfFallbackTimer){ clearTimeout(sfFallbackTimer); sfFallbackTimer=null; }
+}
 
 function sfNoticeError(msg){
   notice('⚠️ Stockfish: '+msg);
@@ -799,12 +810,11 @@ function initStockfish(){
 
   stockfish.onerror = (e)=>{
     sfNoticeError((e && e.message) ? e.message : 'Worker error / engine failed to load.');
-    stopSearch();
+    sfStopSearch();
   };
 
   stockfish.onmessage = (e)=>{
     const line = (typeof e.data==='string') ? e.data : '';
-
     if(line==='uciok'){
       stockfish.postMessage('isready');
       return;
@@ -851,7 +861,10 @@ function skillFromDisplayElo(elo){
 function updateStrengthReadoutOnly(){
   if(!strengthSliderEl) return;
   const raw = parseInt(strengthSliderEl.value, 10) || 0;
-  if(raw <= 0){ setStrengthReadout('Unlimited'); return; }
+  if(raw <= 0){
+    setStrengthReadout('Unlimited');
+    return;
+  }
   const elo = displayEloForRaw(raw);
   setStrengthReadout('Elo ' + elo);
 }
@@ -874,14 +887,14 @@ function applyStrengthFromSlider(){
 
   if(elo < UCI_ELO_MIN){
     const skill = skillFromDisplayElo(elo);
-    if(strengthHelpEl) strengthHelpEl.textContent = 'Elo below 1320 is approximated (Skill Level ' + skill + '/20).';
+    if(strengthHelpEl) strengthHelpEl.textContent = 'Approx Elo (uses Skill Level ' + skill + '/20 internally).';
     sfSend('setoption name UCI_LimitStrength value false');
     sfSend('setoption name Skill Level value ' + skill);
     return;
   }
 
   const target = clamp(elo, UCI_ELO_MIN, UCI_ELO_MAX);
-  if(strengthHelpEl) strengthHelpEl.textContent = 'Elo limiter active (UCI_LimitStrength + UCI_Elo).';
+  if(strengthHelpEl) strengthHelpEl.textContent = 'Elo limiter active.';
   sfSend('setoption name UCI_LimitStrength value true');
   sfSend('setoption name UCI_Elo value ' + target);
 }
@@ -896,7 +909,6 @@ function applyStrengthFromSlider(){
   updateStrengthReadoutOnly();
   strengthSliderEl.addEventListener('input', updateStrengthReadoutOnly);
   strengthSliderEl.addEventListener('change', applyStrengthFromSlider);
-
   if(strengthResetEl){
     strengthResetEl.addEventListener('click', ()=>{
       strengthSliderEl.value = '0';
@@ -905,6 +917,106 @@ function applyStrengthFromSlider(){
     });
   }
 })();
+
+function stopSearch(){
+  // Keep compatibility for other callers in the app.
+  sfStopSearch();
+}
+
+function sendPositionToStockfish(){
+  sfSend('ucinewgame');
+  const fen=boardToFen();
+  sfSend('position fen ' + fen);
+}
+
+function uciToAppMove(uci){
+  const sc=uci.charCodeAt(0)-97;
+  const sr=8-parseInt(uci[1],10);
+  const ec=uci.charCodeAt(2)-97;
+  const er=8-parseInt(uci[3],10);
+  const promo = uci.length>4 ? uci[4].toUpperCase() : null;
+  return {sr,sc,er,ec,promo};
+}
+
+function handleStockfishBestmove(uci){
+  sfSearching=false;
+  if(typeof thinkingEl!=='undefined' && thinkingEl) thinkingEl.style.display='none';
+  if(typeof stopBtn!=='undefined' && stopBtn) stopBtn.style.display='none';
+  if(sfFallbackTimer){ clearTimeout(sfFallbackTimer); sfFallbackTimer=null; }
+
+  if(!uci || uci==='(none)'){
+    notice('No legal moves.');
+    return;
+  }
+
+  const m=uciToAppMove(uci);
+
+  if(pendingHintSF){
+    pendingHintSF=false;
+    hintMove={sr:m.sr,sc:m.sc,er:m.er,ec:m.ec,source:'stockfish'};
+    notice('✨ Hint (Stockfish): '+sqLabel(m.sr,m.sc)+' → '+sqLabel(m.er,m.ec));
+    render();
+    return;
+  }
+
+  if(awaitingAIMoveSF){
+    awaitingAIMoveSF=false;
+    applyMove(m.sr,m.sc,m.er,m.ec,m.promo);
+  }
+}
+
+function requestStockfishBestMove({forHint=false}={}){
+  if(gameOver) return;
+  sfStopSearch();
+  if(forHint) pendingHintSF=true; else awaitingAIMoveSF=true;
+
+  sfSearching=true;
+  if(typeof thinkingEl!=='undefined' && thinkingEl) thinkingEl.style.display='inline';
+  if(typeof stopBtn!=='undefined' && stopBtn) stopBtn.style.display='inline';
+
+  sendPositionToStockfish();
+
+  const mode=searchModeEl.value;
+  if(mode==='time'){
+    const ms=Math.max(100, parseInt(thinkTimeEl.value,10)||800);
+    sfSend('go movetime '+ms);
+    sfFallbackTimer=setTimeout(()=>{ if(!sfSearching) return; notice('Stockfish is taking longer than expected — press Stop or reduce think time.'); sfStopSearch(); }, ms+3000);
+  }else{
+    const d=Math.max(2, Math.min(30, parseInt(depthEl.value,10)||12));
+    sfSend('go depth '+d);
+    sfFallbackTimer=setTimeout(()=>{ if(!sfSearching) return; notice('Stockfish is taking longer than expected — press Stop or reduce depth.'); sfStopSearch(); }, 8000);
+  }
+}
+
+// Hint button (book first, then Stockfish)
+hintBtn.addEventListener('click', ()=>{
+  if(gameOver) return;
+  const bm=pickFromBook();
+  if(bm){
+    hintMove={sr:bm.sr,sc:bm.sc,er:bm.er,ec:bm.ec,source:'book'};
+    notice('✨ Hint (book): '+sqLabel(bm.sr,bm.sc)+' → '+sqLabel(bm.er,bm.ec));
+    render();
+    return;
+  }
+  requestStockfishBestMove({forHint:true});
+});
+
+clearHintBtn.addEventListener('click', ()=>{ hintMove=null; notice(''); render(); });
+
+function maybeAiMove(){
+  if(!vsCompEl.checked || gameOver) return;
+  const human=humanSideEl.value;
+  const aiColor=(human==='white')?'black':'white';
+  if(turn!==aiColor) return;
+  if(currentPly!==timeline.length-1) return;
+
+  const bm=pickFromBook();
+  if(bm){ applyMove(bm.sr,bm.sc,bm.er,bm.ec); return; }
+
+  requestStockfishBestMove({forHint:false});
+}
+
+vsCompEl.addEventListener('change', ()=> maybeAiMove());
 
 // Start
 startNewGame();

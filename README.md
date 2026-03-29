@@ -1,10 +1,11 @@
-# Chess — Style Upgrade (v2)
+# Chess — Tidy Light Theme + Elo Slider
 
-## What changed
-- Modern dark theme + improved panels/buttons/inputs
-- Clear Engine Strength slider (Elo displayed down to 400)
-- Below 1320 Elo uses Stockfish Skill Level under the hood
+## Fixes
+- No more `stopSearch is not defined` (engine uses `sfStopSearch()` internally).
+- Light theme so the board stays visible.
+- Strength slider is compact (max ~460px), not full-width.
 
-## Required engine files (keep next to index.html)
+## Engine files required
+Keep these next to index.html:
 - stockfish-nnue-16-single.js
 - stockfish-nnue-16-single.wasm
