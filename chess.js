@@ -1114,28 +1114,42 @@ async function loadTrainingFromRepo(){
   try{
     setTrainingStatus('Loading training data…');
 
-    // --- OPENINGS: prefer manifest packs (data/openings/index.json) ---
+    // --- OPENINGS ---
     let openingsAll = [];
     try{
       const oIndex = await fetchJson('data/openings/index.json');
-      const packs = await Promise.all((oIndex.files || []).map(f => fetchJson('data/openings/' + f)));
+      const oFiles = Array.isArray(oIndex.files) ? oIndex.files : [];
+      if(!oFiles.length) throw new Error('No opening packs listed');
+      const packs = await Promise.all(oFiles.map(f => fetchJson('data/openings/' + f)));
       openingsAll = packs.flatMap(p => p.openings || []);
     }catch(_e){
-      // Backward compatible fallback
-      const oj = await fetchJson('openings.json');
-      openingsAll = oj.openings || [];
+      // Fallbacks (older layouts)
+      try{
+        const oj = await fetchJson('data/openings.json');
+        openingsAll = oj.openings || [];
+      }catch(_e2){
+        const oj2 = await fetchJson('openings.json');
+        openingsAll = oj2.openings || [];
+      }
     }
 
-    // --- TACTICS: prefer manifest packs (data/tactics/index.json) ---
+    // --- TACTICS ---
     let tacticsAll = [];
     try{
       const tIndex = await fetchJson('data/tactics/index.json');
-      const packs = await Promise.all((tIndex.files || []).map(f => fetchJson('data/tactics/' + f)));
+      const tFiles = Array.isArray(tIndex.files) ? tIndex.files : [];
+      if(!tFiles.length) throw new Error('No tactics packs listed');
+      const packs = await Promise.all(tFiles.map(f => fetchJson('data/tactics/' + f)));
       tacticsAll = packs.flatMap(p => p.tactics || []);
     }catch(_e){
-      // Backward compatible fallback
-      const tj = await fetchJson('tactics.json');
-      tacticsAll = tj.tactics || [];
+      // Fallbacks (older layouts)
+      try{
+        const tj = await fetchJson('data/tactics.json');
+        tacticsAll = tj.tactics || [];
+      }catch(_e2){
+        const tj2 = await fetchJson('tactics.json');
+        tacticsAll = tj2.tactics || [];
+      }
     }
 
     trainingData.openings = mergeUniqueById(openingsAll);
