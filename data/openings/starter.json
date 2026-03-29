@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "pack": "Starter openings",
+  "openings": [
+    {
+      "id": "italian_giuoco_piano",
+      "name": "Italian Game \u2014 Giuoco Piano",
+      "side": "white",
+      "startFen": "startpos",
+      "lines": [
+        {
+          "name": "Main line",
+          "movesUci": [
+            "e2e4",
+            "e7e5",
+            "g1f3",
+            "b8c6",
+            "f1c4",
+            "f8c5",
+            "c2c3",
+            "g8f6",
+            "d2d4",
+            "e5d4"
+          ],
+          "acceptUci": {
+            "6": [
+              "c2c3",
+              "d2d3"
+            ]
+          }
+        },
+        {
+          "name": "Two Knights Defence",
+          "movesUci": [
+            "e2e4",
+            "e7e5",
+            "g1f3",
+            "b8c6",
+            "f1c4",
+            "g8f6",
+            "d2d4",
+            "e5d4",
+            "f3g5",
+            "d7d5"
+          ]
+        }
+      ],
+      "ideas": [
+        "Develop quickly",
+        "Castle early",
+        "Prepare d4 break"
+      ],
+      "tags": [
+        "open",
+        "classical"
+      ]
+    },
+    {
+      "id": "queens_gambit",
+      "name": "Queen's Gambit",
+      "side": "white",
+      "startFen": "startpos",
+      "lines": [
+        {
+          "name": "Declined main",
+          "movesUci": [
+            "d2d4",
+            "d7d5",
+            "c2c4",
+            "e7e6",
+            "b1c3",
+            "g8f6",
+            "c1g5",
+            "f8e7"
+          ]
+        },
+        {
+          "name": "Accepted",
+          "movesUci": [
+            "d2d4",
+            "d7d5",
+            "c2c4",
+            "d5c4",
+            "e2e3",
+            "b8c6",
+            "f1c4",
+            "e7e5"
+          ]
+        }
+      ],
+      "ideas": [
+        "Fight for the center",
+        "Develop pieces behind pawns",
+        "Typical plan: e4 break"
+      ],
+      "tags": [
+        "queen_pawn"
+      ]
+    },
+    {
+      "id": "ruy_lopez",
+      "name": "Ruy Lopez (Spanish)",
+      "side": "white",
+      "startFen": "startpos",
+      "lines": [
+        {
+          "name": "Morphy Defence",
+          "movesUci": [
+            "e2e4",
+            "e7e5",
+            "g1f3",
+            "b8c6",
+            "f1b5",
+            "a7a6",
+            "b5a4",
+            "g8f6"
+          ]
+        },
+        {
+          "name": "Berlin Defence",
+          "movesUci": [
+            "e2e4",
+            "e7e5",
+            "g1f3",
+            "b8c6",
+            "f1b5",
+            "g8f6"
+          ]
+        }
+      ],
+      "ideas": [
+        "Pressure e5",
+        "Castle early",
+        "Develop minor pieces"
+      ],
+      "tags": [
+        "open",
+        "classical"
+      ]
+    },
+    {
+      "id": "london_system",
+      "name": "London System",
+      "side": "white",
+      "startFen": "startpos",
+      "lines": [
+        {
+          "name": "Basic setup",
+          "movesUci": [
+            "d2d4",
+            "d7d5",
+            "g1f3",
+            "g8f6",
+            "c1f4",
+            "e7e6",
+            "e2e3",
+            "f8d6"
+          ]
+        }
+      ],
+      "ideas": [
+        "Solid setup",
+        "Easy development",
+        "Plan: Ne5 and Bd3"
+      ],
+      "tags": [
+        "system",
+        "beginner"
+      ]
+    }
+  ]
+}

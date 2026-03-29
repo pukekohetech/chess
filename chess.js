@@ -1124,13 +1124,8 @@ async function loadTrainingFromRepo(){
       openingsAll = packs.flatMap(p => p.openings || []);
     }catch(_e){
       // Fallbacks (older layouts)
-      try{
-        const oj = await fetchJson('data/openings.json');
-        openingsAll = oj.openings || [];
-      }catch(_e2){
-        const oj2 = await fetchJson('openings.json');
-        openingsAll = oj2.openings || [];
-      }
+      try{ const oj = await fetchJson('data/openings.json'); openingsAll = oj.openings || []; }
+      catch(_e2){ const oj2 = await fetchJson('openings.json'); openingsAll = oj2.openings || []; }
     }
 
     // --- TACTICS ---
@@ -1143,13 +1138,8 @@ async function loadTrainingFromRepo(){
       tacticsAll = packs.flatMap(p => p.tactics || []);
     }catch(_e){
       // Fallbacks (older layouts)
-      try{
-        const tj = await fetchJson('data/tactics.json');
-        tacticsAll = tj.tactics || [];
-      }catch(_e2){
-        const tj2 = await fetchJson('tactics.json');
-        tacticsAll = tj2.tactics || [];
-      }
+      try{ const tj = await fetchJson('data/tactics.json'); tacticsAll = tj.tactics || []; }
+      catch(_e2){ const tj2 = await fetchJson('tactics.json'); tacticsAll = tj2.tactics || []; }
     }
 
     trainingData.openings = mergeUniqueById(openingsAll);
