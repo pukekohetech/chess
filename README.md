@@ -1,19 +1,21 @@
-# Chess — Stockfish (GitHub Pages fix)
+# Chess — Stockfish 16 (Single-threaded, Offline)
 
-Your site is hosted on GitHub Pages. Browsers often block constructing a Worker directly from a different origin (e.g., jsDelivr).
+This is your original chess app upgraded to use Stockfish 16 **single-threaded** as a Web Worker.
 
-This build fixes that by creating the worker from **sf-loader.js** (same origin) and then loading Stockfish inside the worker using `importScripts()`.
+## Required engine files (place next to index.html)
+- stockfish-nnue-16-single.js
+- stockfish-nnue-16-single.wasm
 
-## Deploy
-Upload these files into your `/chess/` folder in the repo:
-- index.html
-- style.css
-- chess.js
-- sf-loader.js
+These are distributed with Stockfish.js builds; once placed, the app works offline.
 
-## Test
-Open your GitHub Pages URL. Try:
-- Enable "Play vs Computer"
-- Click "Hint ✨" after a couple moves
+## GitHub Pages
+Upload all files in this ZIP plus the two engine files into `/chess/`.
 
-If it still fails, check DevTools → Console.
+## Local test
+Run a local server (recommended):
+- Python: `python -m http.server 8000`
+- Open: `http://localhost:8000`
+
+## Notes
+- Hint and AI use opening book first (optional), otherwise Stockfish.
+- If the engine files are missing, you'll see a Stockfish warning in the UI.

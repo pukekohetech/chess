@@ -755,10 +755,14 @@ function pickFromBook(){
 
 
 // ===============================
-// Stockfish Engine (GitHub Pages safe)
-// Uses a SAME-ORIGIN loader worker (sf-loader.js) to bypass cross-origin Worker restrictions.
+// Stockfish 16 (single-threaded) — OFFLINE
+// Place these files next to index.html:
+//   - stockfish-nnue-16-single.js
+//   - stockfish-nnue-16-single.wasm
+// Then this app will run fully offline.
 // ===============================
-const STOCKFISH_WORKER_URL = 'sf-loader.js';
+const STOCKFISH_WORKER_URL = 'stockfish-nnue-16-single.js';
+
 let stockfish=null;
 let stockfishReady=false;
 let sfQueue=[];
@@ -767,11 +771,9 @@ let awaitingAIMoveSF=false;
 let sfSearching=false;
 let sfFallbackTimer=null;
 
-function sq(r,c){ return String.fromCharCode(97+c)+(8-r); }
-
 function sfNoticeError(msg){
-  notice('⚠️ Stockfish error: '+msg);
-  console.error('Stockfish error:', msg);
+  notice('⚠️ Stockfish: '+msg);
+  console.error('Stockfish:', msg);
 }
 
 function initStockfish(){
@@ -779,31 +781,29 @@ function initStockfish(){
   try{
     stockfish = new Worker(STOCKFISH_WORKER_URL);
   }catch(err){
-    sfNoticeError('Unable to start engine worker. (Blocked by browser security policy)');
+    sfNoticeError('Cannot start engine worker. Ensure the Stockfish files are present and you are using HTTPS (GitHub Pages).');
     throw err;
   }
 
   stockfish.onerror = (e)=>{
-    sfNoticeError((e && e.message) ? e.message : 'Worker failed to load.');
+    sfNoticeError((e && e.message) ? e.message : 'Worker error / engine failed to load.');
     stopSearch();
   };
 
   stockfish.onmessage = (e)=>{
-    const line = (typeof e.data==='string')?e.data:'';
+    const line = (typeof e.data==='string') ? e.data : '';
     // console.log('[SF]', line);
 
     if(line==='uciok'){
       stockfish.postMessage('isready');
       return;
     }
-
     if(line==='readyok'){
       stockfishReady=true;
       for(const cmd of sfQueue) stockfish.postMessage(cmd);
       sfQueue=[];
       return;
     }
-
     if(line.startsWith('bestmove')){
       const uci=line.split(/\s+/)[1];
       handleStockfishBestmove(uci);
@@ -832,7 +832,7 @@ function stopSearch(){
 
 function sendPositionToStockfish(){
   sfSend('ucinewgame');
-  const fen = boardToFen();
+  const fen=boardToFen();
   sfSend('position fen ' + fen);
 }
 

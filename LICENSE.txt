@@ -1,0 +1,4 @@
+Stockfish is licensed under GPLv3.
+
+When distributing Stockfish engine binaries (JS/WASM), include the corresponding license and comply with GPLv3.
+This project bundles Stockfish separately to keep licensing clear.

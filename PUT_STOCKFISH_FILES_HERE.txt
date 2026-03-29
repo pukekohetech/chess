@@ -1,0 +1,5 @@
+Place Stockfish engine files here:
+- stockfish-nnue-16-single.js
+- stockfish-nnue-16-single.wasm
+
+Then deploy to GitHub Pages.
