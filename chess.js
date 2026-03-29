@@ -754,8 +754,9 @@ function pickFromBook(){
 }
 
 
+// Worker engine (used for hint + AI)
 // ===============================
-// Stockfish 16 (single-threaded) — OFFLINE + Elo slider (400–3190)
+// Stockfish 16 (single-threaded) — OFFLINE + Elo slider (400–3190 display)
 // Required files next to index.html:
 //   - stockfish-nnue-16-single.js
 //   - stockfish-nnue-16-single.wasm
@@ -763,7 +764,6 @@ function pickFromBook(){
 // ===============================
 const STOCKFISH_WORKER_URL = 'stockfish-nnue-16-single.js';
 
-// UI elements
 const strengthSliderEl  = document.getElementById('strengthSlider');
 const strengthReadoutEl = document.getElementById('strengthReadout');
 const strengthHelpEl    = document.getElementById('strengthHelp');
@@ -771,9 +771,8 @@ const strengthResetEl   = document.getElementById('strengthReset');
 
 const UCI_ELO_MIN = 1320;
 const UCI_ELO_MAX = 3190;
-const DISPLAY_ELO_MIN = 400; // show Elo down to 400
+const DISPLAY_ELO_MIN = 400;
 
-// Local square label helper (avoid dependency on app globals)
 const sqLabel = (r,c)=> String.fromCharCode(97+c) + (8-r);
 
 let stockfish=null;
@@ -810,7 +809,6 @@ function initStockfish(){
       stockfish.postMessage('isready');
       return;
     }
-
     if(line==='readyok'){
       stockfishReady=true;
       for(const cmd of sfQueue) stockfish.postMessage(cmd);
@@ -818,7 +816,6 @@ function initStockfish(){
       applyStrengthFromSlider();
       return;
     }
-
     if(line.startsWith('bestmove')){
       const uci=line.split(/\s+/)[1];
       handleStockfishBestmove(uci);
@@ -843,12 +840,10 @@ function setStrengthReadout(text){
 
 function displayEloForRaw(raw){
   if(raw <= 0) return null;
-  // raw range is 1..3190, show 400..3190
   return clamp(raw, DISPLAY_ELO_MIN, UCI_ELO_MAX);
 }
 
 function skillFromDisplayElo(elo){
-  // Map 400..1319 to skill 0..20
   const t = (clamp(elo, DISPLAY_ELO_MIN, UCI_ELO_MIN-1) - DISPLAY_ELO_MIN) / ((UCI_ELO_MIN-1) - DISPLAY_ELO_MIN);
   return clamp(Math.round(t * 20), 0, 20);
 }
@@ -856,22 +851,14 @@ function skillFromDisplayElo(elo){
 function updateStrengthReadoutOnly(){
   if(!strengthSliderEl) return;
   const raw = parseInt(strengthSliderEl.value, 10) || 0;
-  if(raw <= 0){
-    setStrengthReadout('Unlimited');
-    return;
-  }
+  if(raw <= 0){ setStrengthReadout('Unlimited'); return; }
   const elo = displayEloForRaw(raw);
-  if(elo < UCI_ELO_MIN){
-    setStrengthReadout('Elo ' + elo);
-  } else {
-    setStrengthReadout('Elo ' + elo);
-  }
+  setStrengthReadout('Elo ' + elo);
 }
 
 function applyStrengthFromSlider(){
   if(!strengthSliderEl) return;
   const raw = parseInt(strengthSliderEl.value, 10) || 0;
-
   try{ store.set('chess_strength_slider', String(raw)); }catch(_e){}
 
   if(raw <= 0){
@@ -883,18 +870,17 @@ function applyStrengthFromSlider(){
   }
 
   const elo = displayEloForRaw(raw);
+  setStrengthReadout('Elo ' + elo);
 
   if(elo < UCI_ELO_MIN){
     const skill = skillFromDisplayElo(elo);
-    setStrengthReadout('Elo ' + elo);
-    if(strengthHelpEl) strengthHelpEl.textContent = 'Elo below 1320 is shown as an approximation (internally uses Skill Level ' + skill + '/20).';
+    if(strengthHelpEl) strengthHelpEl.textContent = 'Elo below 1320 is approximated (Skill Level ' + skill + '/20).';
     sfSend('setoption name UCI_LimitStrength value false');
     sfSend('setoption name Skill Level value ' + skill);
     return;
   }
 
   const target = clamp(elo, UCI_ELO_MIN, UCI_ELO_MAX);
-  setStrengthReadout('Elo ' + target);
   if(strengthHelpEl) strengthHelpEl.textContent = 'Elo limiter active (UCI_LimitStrength + UCI_Elo).';
   sfSend('setoption name UCI_LimitStrength value true');
   sfSend('setoption name UCI_Elo value ' + target);
@@ -919,111 +905,6 @@ function applyStrengthFromSlider(){
     });
   }
 })();
-
-function stopSearch(){
-  if(stockfish) stockfish.postMessage('stop');
-  sfSearching=false;
-  pendingHintSF=false;
-  awaitingAIMoveSF=false;
-  thinkingEl.style.display='none';
-  stopBtn.style.display='none';
-  if(sfFallbackTimer){ clearTimeout(sfFallbackTimer); sfFallbackTimer=null; }
-}
-
-function sendPositionToStockfish(){
-  sfSend('ucinewgame');
-  const fen=boardToFen();
-  sfSend('position fen ' + fen);
-}
-
-function uciToAppMove(uci){
-  const sc=uci.charCodeAt(0)-97;
-  const sr=8-parseInt(uci[1],10);
-  const ec=uci.charCodeAt(2)-97;
-  const er=8-parseInt(uci[3],10);
-  const promo = uci.length>4 ? uci[4].toUpperCase() : null;
-  return {sr,sc,er,ec,promo};
-}
-
-function handleStockfishBestmove(uci){
-  sfSearching=false;
-  thinkingEl.style.display='none';
-  stopBtn.style.display='none';
-  if(sfFallbackTimer){ clearTimeout(sfFallbackTimer); sfFallbackTimer=null; }
-
-  if(!uci || uci==='(none)'){
-    notice('No legal moves.');
-    return;
-  }
-
-  const m=uciToAppMove(uci);
-
-  if(pendingHintSF){
-    pendingHintSF=false;
-    hintMove={sr:m.sr,sc:m.sc,er:m.er,ec:m.ec,source:'stockfish'};
-    notice('✨ Hint (Stockfish): '+sqLabel(m.sr,m.sc)+' → '+sqLabel(m.er,m.ec));
-    render();
-    return;
-  }
-
-  if(awaitingAIMoveSF){
-    awaitingAIMoveSF=false;
-    applyMove(m.sr,m.sc,m.er,m.ec,m.promo);
-  }
-}
-
-function requestStockfishBestMove({forHint=false}={}){
-  if(gameOver) return;
-  stopSearch();
-  if(forHint) pendingHintSF=true; else awaitingAIMoveSF=true;
-
-  sfSearching=true;
-  thinkingEl.style.display='inline';
-  stopBtn.style.display='inline';
-
-  sendPositionToStockfish();
-
-  const mode=searchModeEl.value;
-  if(mode==='time'){
-    const ms=Math.max(100, parseInt(thinkTimeEl.value,10)||800);
-    sfSend('go movetime '+ms);
-    sfFallbackTimer=setTimeout(()=>{ if(!sfSearching) return; notice('Stockfish is taking longer than expected — press Stop or reduce think time.'); stopSearch(); }, ms+3000);
-  }else{
-    const d=Math.max(2, Math.min(30, parseInt(depthEl.value,10)||12));
-    sfSend('go depth '+d);
-    sfFallbackTimer=setTimeout(()=>{ if(!sfSearching) return; notice('Stockfish is taking longer than expected — press Stop or reduce depth.'); stopSearch(); }, 8000);
-  }
-}
-
-// Hint button (book first, then Stockfish)
-hintBtn.addEventListener('click', ()=>{
-  if(gameOver) return;
-  const bm=pickFromBook();
-  if(bm){
-    hintMove={sr:bm.sr,sc:bm.sc,er:bm.er,ec:bm.ec,source:'book'};
-    notice('✨ Hint (book): '+sqLabel(bm.sr,bm.sc)+' → '+sqLabel(bm.er,bm.ec));
-    render();
-    return;
-  }
-  requestStockfishBestMove({forHint:true});
-});
-
-clearHintBtn.addEventListener('click', ()=>{ hintMove=null; notice(''); render(); });
-
-function maybeAiMove(){
-  if(!vsCompEl.checked || gameOver) return;
-  const human=humanSideEl.value;
-  const aiColor=(human==='white')?'black':'white';
-  if(turn!==aiColor) return;
-  if(currentPly!==timeline.length-1) return;
-
-  const bm=pickFromBook();
-  if(bm){ applyMove(bm.sr,bm.sc,bm.er,bm.ec); return; }
-
-  requestStockfishBestMove({forHint:false});
-}
-
-vsCompEl.addEventListener('change', ()=> maybeAiMove());
 
 // Start
 startNewGame();
