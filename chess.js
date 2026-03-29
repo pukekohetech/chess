@@ -1021,10 +1021,6 @@ function maybeAiMove(){
 
 vsCompEl.addEventListener('change', ()=> maybeAiMove());
 
-// Start
-startNewGame();
-})();
-
 
 // ===============================
 // Training: Openings + Tactics (load from repo OR uploaded JSON)
@@ -1389,3 +1385,11 @@ function trainingOnUserMove(uci){
     setTrainingStatus('Puzzle solved ✅');
   }
 }
+
+
+
+// Start
+startNewGame();
+})();
+
+
