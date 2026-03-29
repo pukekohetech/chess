@@ -74,7 +74,7 @@ textarea{width:100%;box-sizing:border-box;font-family:ui-monospace, SFMono-Regul
 
 
 
-/* ===== Google-y light UI (v5) ===== */
+/* ===== Google-y UI + Training ===== */
 :root{
   --g-bg:#f6f8fc;
   --g-surface:#ffffff;
@@ -88,24 +88,18 @@ textarea{width:100%;box-sizing:border-box;font-family:ui-monospace, SFMono-Regul
 }
 
 body{background:var(--g-bg); color:var(--g-text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
-
 .panel, .controls{background:var(--g-surface) !important; border:1px solid var(--g-border) !important; border-radius:var(--g-radius) !important; box-shadow:var(--g-shadow) !important;}
-
 #board{border:1px solid var(--g-border) !important; border-radius:16px !important; box-shadow:0 8px 22px rgba(60,64,67,.22) !important;}
-
 input, select, textarea{background:var(--g-surface) !important; border:1px solid var(--g-border) !important; border-radius:10px !important; color:var(--g-text) !important;}
 input:focus, select:focus, textarea:focus{border-color:rgba(26,115,232,.6) !important; box-shadow:0 0 0 3px rgba(26,115,232,.16) !important;}
-
 button{background:var(--g-surface) !important; border:1px solid var(--g-border) !important; border-radius:10px !important; color:var(--g-text) !important; box-shadow:none !important;}
 button:hover{background:var(--g-surface-2) !important;}
-
 #newBtn, #hintBtn{background:rgba(26,115,232,.10) !important; border-color:rgba(26,115,232,.35) !important;}
 #stopBtn{background:rgba(220,38,38,.06) !important; border-color:rgba(220,38,38,.22) !important;}
-
 #notice{background:rgba(26,115,232,.08) !important; border-color:rgba(26,115,232,.18) !important;}
 #errBox{background:rgba(220,38,38,.06) !important; border-color:rgba(220,38,38,.18) !important;}
 
-/* Strength under eval bar */
+/* Strength card under eval */
 .strength-card{margin-top:10px; padding:10px 12px; border:1px solid var(--g-border); border-radius:var(--g-radius); background:var(--g-surface);}
 .strength-top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
 .strength-title{font-weight:600;}
@@ -117,6 +111,22 @@ button:hover{background:var(--g-surface-2) !important;}
 .strength-scale{display:flex; justify-content:space-between; width:100%; color:var(--g-muted); font-size:12px;}
 .strength-help{color:var(--g-muted); font-size:12px;}
 .btn-mini{padding:6px 10px;}
+
+/* Training panel */
+#trainingPanel{margin-top:10px; padding:12px;}
+.trainingTop{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+.trainingTitle{font-weight:700;}
+.trainingTabs{display:flex; gap:8px;}
+.tabBtn{padding:6px 10px;}
+.tabBtn.active{background:rgba(26,115,232,.12) !important; border-color:rgba(26,115,232,.32) !important;}
+.trainingLoad{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; align-items:center;}
+.filePick{display:flex; gap:6px; align-items:center; padding:6px 10px; border:1px dashed rgba(32,33,36,.22); border-radius:10px; background:rgba(241,243,244,.6);}
+.filePick input{max-width:190px;}
+.trainSection{display:flex; flex-direction:column; gap:8px;}
+.trainBtns{display:flex; gap:8px; flex-wrap:wrap;}
+.trainNote{color:var(--g-muted); font-size:12px; min-height:14px;}
+.trainingStatus{margin-top:10px; color:var(--g-muted); font-size:12px;}
+.row2{display:flex; gap:10px; flex-wrap:wrap;}
 
 @media (max-width:700px){
   .strength-controls input[type=range], .strength-actions{width:100%;}

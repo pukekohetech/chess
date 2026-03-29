@@ -1,3 +1,7 @@
+// Move source helper (training / engine / user)
+let MOVE_SOURCE = 'user';
+function withMoveSource(src, fn){ const prev = MOVE_SOURCE; MOVE_SOURCE = src; try{ return fn(); } finally { MOVE_SOURCE = prev; } }
+
 (()=>{
 'use strict';
 
@@ -794,7 +798,7 @@ function sfStopSearch(){
 }
 
 function stopSearch(){
-  // compatibility (the rest of the app may call stopSearch)
+  // compatibility
   sfStopSearch();
 }
 
@@ -960,7 +964,7 @@ function handleStockfishBestmove(uci){
 
   if(awaitingAIMoveSF){
     awaitingAIMoveSF=false;
-    applyMove(m.sr,m.sc,m.er,m.ec,m.promo);
+    withMoveSource('engine', ()=> applyMove(m.sr,m.sc,m.er,m.ec,m.promo));
   }
 }
 
@@ -1010,7 +1014,7 @@ function maybeAiMove(){
   if(currentPly!==timeline.length-1) return;
 
   const bm=pickFromBook();
-  if(bm){ applyMove(bm.sr,bm.sc,bm.er,bm.ec); return; }
+  if(bm){ withMoveSource('engine', ()=> applyMove(bm.sr,bm.sc,bm.er,bm.ec)); return; }
 
   requestStockfishBestMove({forHint:false});
 }
@@ -1020,3 +1024,368 @@ vsCompEl.addEventListener('change', ()=> maybeAiMove());
 // Start
 startNewGame();
 })();
+
+
+// ===============================
+// Training: Openings + Tactics (load from repo OR uploaded JSON)
+// ===============================
+let trainingData = { openings: [], tactics: [] };
+let trainingMode = 'openings'; // 'openings'|'tactics'
+let trainingActive = false;
+let openingState = null;
+let tacticState = null;
+
+const trainTabOpenings = document.getElementById('trainTabOpenings');
+const trainTabTactics = document.getElementById('trainTabTactics');
+const trainOpeningsSec = document.getElementById('trainOpenings');
+const trainTacticsSec = document.getElementById('trainTactics');
+const trainingStatusEl = document.getElementById('trainingStatus');
+
+const trainLoadRepoBtn = document.getElementById('trainLoadRepo');
+const trainUseFilesBtn = document.getElementById('trainUseFiles');
+const openingsFileEl = document.getElementById('trainOpeningsFile');
+const tacticsFileEl = document.getElementById('trainTacticsFile');
+
+const openingSelect = document.getElementById('openingSelect');
+const openingLineSelect = document.getElementById('openingLineSelect');
+const openingSideSelect = document.getElementById('openingSideSelect');
+const startOpeningBtn = document.getElementById('startOpening');
+const stopTrainingBtn = document.getElementById('stopTraining');
+const stopTrainingBtn2 = document.getElementById('stopTraining2');
+const openingIdeasEl = document.getElementById('openingIdeas');
+
+const tacMinEl = document.getElementById('tacMin');
+const tacMaxEl = document.getElementById('tacMax');
+const tacThemesEl = document.getElementById('tacThemes');
+const nextTacticBtn = document.getElementById('nextTactic');
+const tacInfoEl = document.getElementById('tacInfo');
+
+function setTrainingStatus(msg){ if(trainingStatusEl) trainingStatusEl.textContent = msg; }
+
+function setTab(mode){
+  trainingMode = mode;
+  if(trainTabOpenings) trainTabOpenings.classList.toggle('active', mode==='openings');
+  if(trainTabTactics) trainTabTactics.classList.toggle('active', mode==='tactics');
+  if(trainOpeningsSec) trainOpeningsSec.style.display = (mode==='openings') ? '' : 'none';
+  if(trainTacticsSec) trainTacticsSec.style.display = (mode==='tactics') ? '' : 'none';
+}
+
+if(trainTabOpenings) trainTabOpenings.addEventListener('click', ()=> setTab('openings'));
+if(trainTabTactics) trainTabTactics.addEventListener('click', ()=> setTab('tactics'));
+setTab('openings');
+
+async function loadJsonFromUrl(url){
+  const res = await fetch(url, {cache:'no-store'});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return await res.json();
+}
+
+function readJsonFile(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{ resolve(JSON.parse(reader.result)); }catch(e){ reject(e); }
+    };
+    reader.onerror = ()=> reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
+async function loadTrainingFromRepo(){
+  try{
+    setTrainingStatus('Loading training data…');
+    const [openingsJson, tacticsJson] = await Promise.all([
+      loadJsonFromUrl('data/openings.json'),
+      loadJsonFromUrl('data/tactics.json')
+    ]);
+    trainingData.openings = openingsJson.openings || [];
+    trainingData.tactics = tacticsJson.tactics || [];
+    populateOpeningDropdowns();
+    setTrainingStatus(`Loaded ${trainingData.openings.length} openings and ${trainingData.tactics.length} tactics from repo.`);
+  }catch(e){
+    setTrainingStatus('Failed to load repo JSON. Ensure /data/openings.json and /data/tactics.json exist.');
+    console.error(e);
+  }
+}
+
+async function loadTrainingFromFiles(){
+  try{
+    const of = openingsFileEl && openingsFileEl.files && openingsFileEl.files[0];
+    const tf = tacticsFileEl && tacticsFileEl.files && tacticsFileEl.files[0];
+    if(!of || !tf){ setTrainingStatus('Please choose BOTH Openings JSON and Tactics JSON files.'); return; }
+    setTrainingStatus('Loading uploaded JSON…');
+    const [oj, tj] = await Promise.all([readJsonFile(of), readJsonFile(tf)]);
+    trainingData.openings = oj.openings || [];
+    trainingData.tactics = tj.tactics || [];
+    populateOpeningDropdowns();
+    setTrainingStatus(`Loaded ${trainingData.openings.length} openings and ${trainingData.tactics.length} tactics from uploaded files.`);
+  }catch(e){
+    setTrainingStatus('Failed to parse uploaded JSON.');
+    console.error(e);
+  }
+}
+
+if(trainLoadRepoBtn) trainLoadRepoBtn.addEventListener('click', loadTrainingFromRepo);
+if(trainUseFilesBtn) trainUseFilesBtn.addEventListener('click', loadTrainingFromFiles);
+
+function populateOpeningDropdowns(){
+  if(!openingSelect || !openingLineSelect) return;
+  openingSelect.innerHTML = '';
+  for(const o of trainingData.openings){
+    const opt = document.createElement('option');
+    opt.value = o.id || o.name;
+    opt.textContent = o.name || o.id;
+    openingSelect.appendChild(opt);
+  }
+  updateLineDropdown();
+}
+
+function getSelectedOpening(){
+  const key = openingSelect ? openingSelect.value : null;
+  return trainingData.openings.find(o => (o.id||o.name) === key) || trainingData.openings[0] || null;
+}
+
+function updateLineDropdown(){
+  const o = getSelectedOpening();
+  if(!o || !openingLineSelect) return;
+  openingLineSelect.innerHTML='';
+  (o.lines||[]).forEach((ln, idx)=>{
+    const opt = document.createElement('option');
+    opt.value = String(idx);
+    opt.textContent = ln.name || ('Line '+(idx+1));
+    openingLineSelect.appendChild(opt);
+  });
+  if(openingSideSelect && o.side){
+    // default side from file
+    openingSideSelect.value = o.side;
+  }
+  if(openingIdeasEl){
+    openingIdeasEl.textContent = (o.ideas && o.ideas.length) ? ('Ideas: ' + o.ideas.join(' • ')) : '';
+  }
+}
+
+if(openingSelect) openingSelect.addEventListener('change', updateLineDropdown);
+
+function uciToMove(uci){
+  const sc=uci.charCodeAt(0)-97;
+  const sr=8-parseInt(uci[1],10);
+  const ec=uci.charCodeAt(2)-97;
+  const er=8-parseInt(uci[3],10);
+  const promo = uci.length>4 ? uci[4].toUpperCase() : null;
+  return {sr,sc,er,ec,promo};
+}
+
+function setPositionFromFenOrStart(fen){
+  if(fen==='startpos'){
+    if(typeof newBtn!=='undefined' && newBtn) newBtn.click();
+    return;
+  }
+  if(typeof fenBox!=='undefined' && fenBox && typeof loadFenBtn!=='undefined' && loadFenBtn){
+    fenBox.value = fen;
+    loadFenBtn.click();
+  }
+}
+
+function autoPlayUciMove(uci){
+  const m = uciToMove(uci);
+  withMoveSource('trainer', ()=> applyMove(m.sr,m.sc,m.er,m.ec,m.promo));
+}
+
+function openingAutoAdvance(){
+  if(!openingState) return;
+  // play book/opponent moves until it's student's turn or line ends
+  while(openingState.idx < openingState.moves.length){
+    const expected = openingState.moves[openingState.idx];
+    const colorToPlay = (typeof turn!=='undefined') ? turn : null;
+    if(colorToPlay === openingState.studentColor){
+      setTrainingStatus(`Opening: Your move (${openingState.studentColor}). Step ${openingState.idx+1}/${openingState.moves.length}`);
+      return;
+    }
+    // opponent move
+    autoPlayUciMove(expected);
+    openingState.idx++;
+  }
+  trainingActive = false;
+  openingState = null;
+  setTrainingStatus('Opening line complete ✅');
+}
+
+function startOpeningTraining(){
+  const o = getSelectedOpening();
+  if(!o){ setTrainingStatus('No openings loaded.'); return; }
+  const lineIdx = parseInt(openingLineSelect.value,10) || 0;
+  const ln = (o.lines||[])[lineIdx];
+  if(!ln || !(ln.movesUci||[]).length){ setTrainingStatus('Selected line has no moves.'); return; }
+
+  // reset board
+  setPositionFromFenOrStart(o.startFen || 'startpos');
+
+  trainingActive = true;
+  openingState = {
+    openingId: o.id || o.name,
+    lineName: ln.name || ('Line '+(lineIdx+1)),
+    studentColor: (openingSideSelect ? openingSideSelect.value : (o.side||'white')),
+    moves: ln.movesUci.slice(),
+    idx: 0
+  };
+
+  // Let board settle then auto-advance
+  setTimeout(openingAutoAdvance, 30);
+}
+
+function stopTraining(){
+  trainingActive = false;
+  openingState = null;
+  tacticState = null;
+  setTrainingStatus('Training stopped.');
+}
+
+if(startOpeningBtn) startOpeningBtn.addEventListener('click', startOpeningTraining);
+if(stopTrainingBtn) stopTrainingBtn.addEventListener('click', stopTraining);
+if(stopTrainingBtn2) stopTrainingBtn2.addEventListener('click', stopTraining);
+
+function pickNextTactic(){
+  const min = parseInt(tacMinEl.value,10) || 0;
+  const max = parseInt(tacMaxEl.value,10) || 4000;
+  const themes = (tacThemesEl.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+
+  let pool = trainingData.tactics.filter(t => (t.rating==null || (t.rating>=min && t.rating<=max)));
+  if(themes.length){
+    pool = pool.filter(t => {
+      const th = (t.themes||[]).map(x=>String(x).toLowerCase());
+      return themes.every(req => th.includes(req.toLowerCase()));
+    });
+  }
+  if(!pool.length) return null;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function startTactic(t){
+  setPositionFromFenOrStart(t.fen);
+  trainingActive = true;
+  tacticState = {
+    id: t.id,
+    fen: t.fen,
+    solution: (t.solutionUci||[]).slice(),
+    idx: 0,
+    studentColor: (t.sideToMove==='b') ? 'black' : 'white',
+    meta: t
+  };
+
+  if(tacInfoEl){
+    tacInfoEl.textContent = `${t.title||'Puzzle'} • Rating ${t.rating||'?'} • Themes: ${(t.themes||[]).join(', ')}`;
+  }
+
+  setTimeout(()=>{
+    setTrainingStatus('Tactic: find the best move.');
+  }, 30);
+}
+
+function nextTactic(){
+  if(!trainingData.tactics.length){ setTrainingStatus('No tactics loaded.'); return; }
+  const t = pickNextTactic();
+  if(!t){ setTrainingStatus('No tactics match your filters.'); return; }
+  startTactic(t);
+}
+
+if(nextTacticBtn) nextTacticBtn.addEventListener('click', nextTactic);
+
+// Hook into user moves by wrapping applyMove after it exists
+(function hookUserMoves(){
+  const tryHook = ()=>{
+    if(typeof applyMove !== 'function') return setTimeout(tryHook, 20);
+    if(applyMove.__trainingWrapped) return;
+
+    const orig = applyMove;
+    const uciFromCoords = (sr,sc,er,ec,promo)=>{
+      const u = String.fromCharCode(97+sc) + (8-sr) + String.fromCharCode(97+ec) + (8-er);
+      return promo ? (u + promo.toLowerCase()) : u;
+    };
+
+    const wrapped = function(sr,sc,er,ec,promo){
+      const uci = uciFromCoords(sr,sc,er,ec,promo);
+      const source = (typeof MOVE_SOURCE==='string') ? MOVE_SOURCE : 'user';
+      const res = orig(sr,sc,er,ec,promo);
+      if(source==='user'){
+        trainingOnUserMove(uci);
+      }
+      return res;
+    };
+    wrapped.__trainingWrapped = true;
+    // preserve other properties
+    Object.assign(wrapped, orig);
+    applyMove = wrapped;
+  };
+  tryHook();
+})();
+
+function trainingOnUserMove(uci){
+  if(!trainingActive) return;
+
+  // OPENINGS
+  if(openingState){
+    const expected = openingState.moves[openingState.idx];
+    if(!expected){
+      trainingActive=false; openingState=null; setTrainingStatus('Opening complete ✅'); return;
+    }
+    if(uci !== expected){
+      setTrainingStatus(`❌ Not quite. Expected ${expected}. Try again.`);
+      // Undo the wrong move
+      if(typeof undoBtn!=='undefined' && undoBtn) undoBtn.click();
+      // Show hint arrow
+      try{
+        const m = uciToMove(expected);
+        hintMove = {sr:m.sr,sc:m.sc,er:m.er,ec:m.ec,source:'trainer'};
+        render();
+      }catch(_e){}
+      return;
+    }
+    // correct
+    openingState.idx++;
+    setTrainingStatus('✅ Correct!');
+    // clear hint
+    hintMove = null;
+    // auto-advance opponent moves
+    setTimeout(openingAutoAdvance, 20);
+    return;
+  }
+
+  // TACTICS
+  if(tacticState){
+    const expected = tacticState.solution[tacticState.idx];
+    if(!expected){
+      trainingActive=false; tacticState=null; setTrainingStatus('Puzzle solved ✅'); return;
+    }
+    if(uci !== expected){
+      setTrainingStatus(`❌ Try again. Expected ${expected}.`);
+      if(typeof undoBtn!=='undefined' && undoBtn) undoBtn.click();
+      // hint arrow
+      try{
+        const m = uciToMove(expected);
+        hintMove = {sr:m.sr,sc:m.sc,er:m.er,ec:m.ec,source:'trainer'};
+        render();
+      }catch(_e){}
+      return;
+    }
+
+    // correct move
+    tacticState.idx++;
+    hintMove = null;
+
+    // auto-play opponent reply if present and if it's not student's color
+    while(tacticState.idx < tacticState.solution.length){
+      const next = tacticState.solution[tacticState.idx];
+      const colorToPlay = (typeof turn!=='undefined') ? turn : null;
+      if(colorToPlay === tacticState.studentColor){
+        setTrainingStatus('✅ Good. Next move?');
+        return;
+      }
+      autoPlayUciMove(next);
+      tacticState.idx++;
+    }
+
+    trainingActive=false;
+    tacticState=null;
+    setTrainingStatus('Puzzle solved ✅');
+  }
+}

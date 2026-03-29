@@ -1,11 +1,18 @@
-# Chess — Google-y UI (Elo under eval bar)
+# Chess — Training Mode (Openings + Tactics)
 
-## Changes
-- Engine strength (Elo) control sits directly under the evaluation bar.
-- Clean Google-y styling (light background, white surfaces, subtle borders).
-- Slider width is capped (~380px on desktop).
+This build adds a **Training** panel with two modes:
+- **Openings**: follow a line and get immediate feedback.
+- **Tactics**: solve puzzles from FEN + UCI solution lines.
 
-## Engine files required
-Keep these next to index.html:
+## Data loading (both supported)
+1) **Repo JSON**: place files in `data/openings.json` and `data/tactics.json`.
+2) **Upload JSON**: use the file pickers in the Training panel.
+
+## Engine files required (offline)
+Keep these next to `index.html`:
 - stockfish-nnue-16-single.js
 - stockfish-nnue-16-single.wasm
+
+## Notes
+- Elo slider uses UCI_Elo where possible and approximates low Elo via Skill Level.
+- Tactics solutions use UCI moves like `e2e4`.
