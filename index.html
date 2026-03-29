@@ -3,16 +3,183 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chess + Stockfish</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Chess — Stockfish 16 Offline</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="errBox"></div>
-  <div id="app">
-    <h2 id="status">Turn: White</h2>
-    <div id="board"></div>
-    <button id="aiMoveBtn">AI Move (Stockfish)</button>
+<div id="errBox"></div>
+
+<div id="promoOverlay">
+  <div id="promoModal" role="dialog" aria-modal="true" aria-label="Promote pawn">
+    <p id="promoTitle">Promote pawn</p>
+    <p id="promoHelp">Choose a piece:</p>
+    <div id="promoBtns">
+      <button class="promoBtn" data-piece="Q" type="button"><div class="promoIcon" id="promoQ">♕</div><div class="promoLabel">Queen</div></button>
+      <button class="promoBtn" data-piece="R" type="button"><div class="promoIcon" id="promoR">♖</div><div class="promoLabel">Rook</div></button>
+      <button class="promoBtn" data-piece="B" type="button"><div class="promoIcon" id="promoB">♗</div><div class="promoLabel">Bishop</div></button>
+      <button class="promoBtn" data-piece="N" type="button"><div class="promoIcon" id="promoN">♘</div><div class="promoLabel">Knight</div></button>
+    </div>
   </div>
-  <script src="chess.js"></script>
+</div>
+
+<div id="app">
+  <div id="left">
+    <div class="controls">
+      <label><input type="checkbox" id="vsComp"> Play vs Computer</label>
+      <label>You play:
+        <select id="humanSide"><option value="white">White</option><option value="black">Black</option></select>
+      </label>
+      <label>Search:
+        <select id="searchMode"><option value="time" selected>Time</option><option value="depth">Depth</option></select>
+      </label>
+      <label id="timeWrap">Think (ms): <input type="number" id="thinkTime" min="100" max="5000" step="100" value="800"></label>
+      <label id="depthWrap" style="display:none;">Depth: <input type="number" id="depth" min="2" max="5" value="3" style="width:64px;"></label>
+
+      <label>Board size: <input type="range" id="boardSize" min="56" max="140" value="96"></label>
+      <label><input type="checkbox" id="focusMode"> Focus mode</label>
+      <label><input type="checkbox" id="showHints" checked> Hints</label>
+      <label><input type="checkbox" id="showOverlays" checked> Threat/guard</label>
+      <label><input type="checkbox" id="showBadges" checked> A/D badges</label>
+      <label><input type="checkbox" id="useBook" checked> Opening book</label>
+      <button id="hintBtn" title="Show a best-move hint (opening book or engine)">Hint ✨</button>
+      <button id="clearHintBtn" title="Clear hint">Clear Hint</button>
+      <button id="newBtn">New Game</button>
+      <button id="flipBtn">Flip Board</button>
+      <button id="undoBtn">Undo</button>
+      <button id="redoBtn">Redo</button>
+      <button id="stopBtn" style="display:none;">Stop</button>
+    </div>
+
+    <h2 id="status">Turn: White</h2>
+    <div class="board" id="board"></div>
+  </div>
+
+  <div id="side">
+    <div class="panel" id="evalPanel">
+      <div id="evalWrap">
+        <div id="evalTop">
+          <div><b>Evaluation</b> <span id="evalLabel">0.00</span></div>
+          <span id="thinking">🤖 Thinking…</span>
+        </div>
+        <div id="evalBarH"><div id="evalMarker"></div></div>
+        <div id="notice"></div>
+        <div style="font-size:12px;color:#555;">Left = Black better, Right = White better</div>
+      </div>
+    </div>
+
+    <div class="panel">
+
+<div class="strength-card" id="strengthCard">
+  <div class="strength-top">
+    <div class="strength-title">Engine strength</div>
+    <div class="strength-pill" id="strengthReadout">Unlimited</div>
+  </div>
+  <div class="strength-sub">Elo shows down to 400 (below 1320 uses Skill Level internally).</div>
+  <div class="strength-controls">
+    <input type="range" id="strengthSlider" min="0" max="3190" step="25" value="0" list="strengthTicks" aria-label="Engine strength" />
+    <datalist id="strengthTicks">
+      <option value="0" label="∞"></option>
+      <option value="400" label="400"></option>
+      <option value="600" label="600"></option>
+      <option value="800" label="800"></option>
+      <option value="1000" label="1000"></option>
+      <option value="1200" label="1200"></option>
+      <option value="1320" label="1320"></option>
+      <option value="1600" label="1600"></option>
+      <option value="2000" label="2000"></option>
+      <option value="2400" label="2400"></option>
+      <option value="2800" label="2800"></option>
+      <option value="3190" label="3190"></option>
+    </datalist>
+    <div class="strength-actions">
+      <div class="strength-scale"><span>∞</span><span>600</span><span>1200</span><span>2000</span><span>3190</span></div>
+      <button class="btn-mini" id="strengthReset" type="button">Reset</button>
+    </div>
+    <div class="strength-help" id="strengthHelp"></div>
+  </div>
+</div>
+
+
+      <h3 style="margin:0 0 8px;">Move History (click to jump)</h3>
+      <div id="history"></div>
+
+<div class="panel" id="trainingPanel" aria-label="Training">
+  <div class="trainingTop">
+    <div class="trainingTitle">Training</div>
+    <div class="trainingTabs">
+      <button id="trainTabOpenings" class="tabBtn" type="button">Openings</button>
+      <button id="trainTabTactics" class="tabBtn" type="button">Tactics</button>
+    </div>
+  </div>
+
+  <div class="trainingLoad">
+    <button id="trainLoadRepo" type="button">Load from repo</button>
+    <label class="filePick">Openings JSON (one or more)<input id="trainOpeningsFile" type="file" accept="application/json" / multiple></label>
+    <label class="filePick">Tactics JSON (one or more)<input id="trainTacticsFile" type="file" accept="application/json" / multiple></label>
+    <button id="trainUseFiles" type="button">Use uploaded</button>
+  </div>
+
+  <div id="trainOpenings" class="trainSection">
+    <label>Opening
+      <select id="openingSelect"></select>
+    </label>
+    <label>Line
+      <select id="openingLineSelect"></select>
+    </label>
+    <label>Your side
+      <select id="openingSideSelect">
+        <option value="white">White</option>
+        <option value="black">Black</option>
+      </select>
+    </label>
+    <div class="trainBtns">
+      <button id="startOpening" type="button">Start</button>
+      <button id="stopTraining" type="button">Stop</button>
+    </div>
+    <div class="trainNote" id="openingIdeas"></div>
+  </div>
+
+  <div id="trainTactics" class="trainSection" style="display:none;">
+    <div class="row2">
+      <label>Min rating <input id="tacMin" type="number" value="600" min="0" max="4000" /></label>
+      <label>Max rating <input id="tacMax" type="number" value="1400" min="0" max="4000" /></label>
+    </div>
+    <label>Themes (comma-separated)
+      <input id="tacThemes" type="text" placeholder="fork, mate, pin" />
+    </label>
+    <div class="trainBtns">
+      <button id="nextTactic" type="button">Next puzzle</button>
+      <button id="stopTraining2" type="button">Stop</button>
+    </div>
+    <div class="trainNote" id="tacInfo"></div>
+  </div>
+
+  <div class="trainingStatus" id="trainingStatus">Load training data to begin.</div>
+</div>
+
+
+      <div class="small" style="margin-top:8px;">Tip: click a move to time-travel; playing from the past truncates the future.</div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin:0 0 8px;">FEN</h3>
+      <textarea id="fenBox" rows="4" spellcheck="false" placeholder="Paste FEN here…"></textarea>
+      <div class="rowBtns">
+        <button id="getFenBtn">Update box</button>
+        <button id="copyFenBtn">Copy FEN</button>
+        <button id="loadFenBtn">Load FEN</button>
+      </div>
+      <div class="small">Loading FEN resets move history/undo and starts a new timeline.</div>
+    </div>
+
+    <div class="panel" style="font-size:13px;color:#333;">
+      <div>🟨 last move highlight • 🔴 check</div>
+      <div>🟥 capture • 🟩 safe • 🟧 unsafe</div>
+      <div>✨ hint highlights in blue</div>
+      <div>🤝 draw detection: <b>stalemate</b></div>
+    </div>
+  </div>
+</div>
+<script src="chess.js"></script>
 </body>
 </html>
