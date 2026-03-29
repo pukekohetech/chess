@@ -764,6 +764,9 @@ const STOCKFISH_WORKER_URL = 'stockfish-nnue-16-single.js';
 const eloSliderEl = document.getElementById('eloSlider');
 const eloValueEl  = document.getElementById('eloValue');
 
+// Local square label helper (avoid dependency on app globals)
+const sqLabel = (r,c)=> String.fromCharCode(97+c) + (8-r);
+
 let stockfish=null;
 let stockfishReady=false;
 let sfQueue=[];
@@ -911,7 +914,7 @@ function handleStockfishBestmove(uci){
   if(pendingHintSF){
     pendingHintSF=false;
     hintMove={sr:m.sr,sc:m.sc,er:m.er,ec:m.ec,source:'stockfish'};
-    notice('✨ Hint (Stockfish): '+sq(m.sr,m.sc)+' → '+sq(m.er,m.ec));
+    notice('✨ Hint (Stockfish): '+sqLabel(m.sr,m.sc)+' → '+sqLabel(m.er,m.ec));
     render();
     return;
   }
@@ -951,7 +954,7 @@ hintBtn.addEventListener('click', ()=>{
   const bm=pickFromBook();
   if(bm){
     hintMove={sr:bm.sr,sc:bm.sc,er:bm.er,ec:bm.ec,source:'book'};
-    notice('✨ Hint (book): '+sq(bm.sr,bm.sc)+' → '+sq(bm.er,bm.ec));
+    notice('✨ Hint (book): '+sqLabel(bm.sr,bm.sc)+' → '+sqLabel(bm.er,bm.ec));
     render();
     return;
   }

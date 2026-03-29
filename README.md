@@ -1,6 +1,6 @@
-# Chess — Stockfish 16 Offline + Elo Slider
+# Chess — Stockfish 16 Offline + Elo Slider (Fixed)
 
-This build adds an Elo slider. Set Elo below 800 to **Unlimited**. Values 800–2000 enable Stockfish's Elo limiter.
+Fixes: `sq is not defined` by using an internal `sqLabel()` helper.
 
 ## Required engine files (keep next to index.html)
 - stockfish-nnue-16-single.js
