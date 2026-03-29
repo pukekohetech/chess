@@ -1009,6 +1009,7 @@ hintBtn.addEventListener('click', ()=>{
 clearHintBtn.addEventListener('click', ()=>{ hintMove=null; notice(''); render(); });
 
 function maybeAiMove(){
+  if(globalThis.__TRAINING_ACTIVE__) return;
   if(!vsCompEl.checked || gameOver) return;
   const human=humanSideEl.value;
   const aiColor=(human==='white')?'black':'white';
@@ -1023,10 +1024,6 @@ function maybeAiMove(){
 
 vsCompEl.addEventListener('change', ()=> maybeAiMove());
 
-// Start
-startNewGame();
-})();
-
 
 // ===============================
 // Training: Openings + Tactics (load from repo OR uploaded JSON)
@@ -1034,6 +1031,8 @@ startNewGame();
 let trainingData = { openings: [], tactics: [] };
 let trainingMode = 'openings'; // 'openings'|'tactics'
 let trainingActive = false;
+function enterTrainingMode(){ globalThis.__TRAINING_ACTIVE__ = true; }
+function exitTrainingMode(){ globalThis.__TRAINING_ACTIVE__ = false; }
 let openingState = null;
 let tacticState = null;
 
@@ -1213,6 +1212,7 @@ function openingAutoAdvance(){
 }
 
 function startOpeningTraining(){
+  enterTrainingMode();
   const o = getSelectedOpening();
   if(!o){ setTrainingStatus('No openings loaded.'); return; }
   const lineIdx = parseInt(openingLineSelect.value,10) || 0;
@@ -1240,6 +1240,7 @@ function stopTraining(){
   openingState = null;
   tacticState = null;
   setTrainingStatus('Training stopped.');
+  exitTrainingMode();
 }
 
 if(startOpeningBtn) startOpeningBtn.addEventListener('click', startOpeningTraining);
@@ -1263,6 +1264,7 @@ function pickNextTactic(){
 }
 
 function startTactic(t){
+  enterTrainingMode();
   setPositionFromFenOrStart(t.fen);
   trainingActive = true;
   tacticState = {
@@ -1391,3 +1393,11 @@ function trainingOnUserMove(uci){
     setTrainingStatus('Puzzle solved ✅');
   }
 }
+
+
+
+// Start
+startNewGame();
+})();
+
+
