@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "openings": [
+    {
+      "id": "italian_giuoco_piano",
+      "name": "Italian Game \u2014 Giuoco Piano",
+      "side": "white",
+      "startFen": "startpos",
+      "lines": [
+        {
+          "name": "Main line",
+          "movesUci": [
+            "e2e4",
+            "e7e5",
+            "g1f3",
+            "b8c6",
+            "f1c4",
+            "f8c5",
+            "c2c3",
+            "g8f6",
+            "d2d4",
+            "e5d4",
+            "c3d4",
+            "c5b4"
+          ]
+        },
+        {
+          "name": "Two Knights Defence",
+          "movesUci": [
+            "e2e4",
+            "e7e5",
+            "g1f3",
+            "b8c6",
+            "f1c4",
+            "g8f6",
+            "d2d4",
+            "e5d4",
+            "f3g5",
+            "d7d5"
+          ]
+        }
+      ],
+      "ideas": [
+        "Develop quickly",
+        "Castle early",
+        "Prepare d4 break"
+      ],
+      "tags": [
+        "open",
+        "classical"
+      ]
+    },
+    {
+      "id": "queens_gambit",
+      "name": "Queen's Gambit",
+      "side": "white",
+      "startFen": "startpos",
+      "lines": [
+        {
+          "name": "Declined main",
+          "movesUci": [
+            "d2d4",
+            "d7d5",
+            "c2c4",
+            "e7e6",
+            "b1c3",
+            "g8f6",
+            "c1g5",
+            "f8e7"
+          ]
+        },
+        {
+          "name": "Accepted",
+          "movesUci": [
+            "d2d4",
+            "d7d5",
+            "c2c4",
+            "d5c4",
+            "e2e3",
+            "b8c6",
+            "f1c4",
+            "e7e5"
+          ]
+        }
+      ],
+      "ideas": [
+        "Fight for the center",
+        "Develop pieces behind pawns",
+        "Typical plan: e4 break"
+      ],
+      "tags": [
+        "queen_pawn"
+      ]
+    }
+  ]
+}

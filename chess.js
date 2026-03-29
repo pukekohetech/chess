@@ -1021,6 +1021,10 @@ function maybeAiMove(){
 
 vsCompEl.addEventListener('change', ()=> maybeAiMove());
 
+// Start
+startNewGame();
+})();
+
 
 // ===============================
 // Training: Openings + Tactics (load from repo OR uploaded JSON)
@@ -1184,9 +1188,16 @@ function setPositionFromFenOrStart(fen){
 
 function autoPlayUciMove(uci){
   const m = uciToMove(uci);
+  // Stop any engine search before altering the position
+  try{ stopSearch(); }catch(_e){}
+  // Safety: only auto-play legal moves
+  if(typeof validMove==='function' && !validMove(m.sr,m.sc,m.er,m.ec,true)){
+    setTrainingStatus('⚠️ Training line diverged (illegal book move: '+uci+'). Stopping training.');
+    stopTraining();
+    return;
+  }
   withMoveSource('trainer', ()=> applyMove(m.sr,m.sc,m.er,m.ec,m.promo));
 }
-
 function openingAutoAdvance(){
   if(!openingState) return;
   // play book/opponent moves until it's student's turn or line ends
@@ -1222,8 +1233,8 @@ function startOpeningTraining(){
     lineName: ln.name || ('Line '+(lineIdx+1)),
     studentColor: (openingSideSelect ? openingSideSelect.value : (o.side||'white')),
     moves: ln.movesUci.slice(),
-    idx: 0
-  };
+    idx: 0,
+ accept: (ln.acceptUci || {} )};
 
   // Let board settle then auto-advance
   setTimeout(openingAutoAdvance, 30);
@@ -1321,11 +1332,13 @@ function trainingOnUserMove(uci){
   // OPENINGS
   if(openingState){
     const expected = openingState.moves[openingState.idx];
+    const extra = (openingState.accept && openingState.accept[String(openingState.idx)]) || null;
+    const allowed = Array.isArray(extra) ? Array.from(new Set([expected, ...extra])) : [expected];
     if(!expected){
       trainingActive=false; openingState=null; setTrainingStatus('Opening complete ✅'); return;
     }
-    if(uci !== expected){
-      setTrainingStatus(`❌ Not quite. Expected ${expected}. Try again.`);
+    if(!allowed.includes(uci)){
+      setTrainingStatus(`❌ Not quite. Expected one of ${allowed.join(', ')}. Try again.`);
       // Undo the wrong move
       if(typeof undoBtn!=='undefined' && undoBtn) undoBtn.click();
       // Show hint arrow
@@ -1385,11 +1398,3 @@ function trainingOnUserMove(uci){
     setTrainingStatus('Puzzle solved ✅');
   }
 }
-
-
-
-// Start
-startNewGame();
-})();
-
-

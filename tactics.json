@@ -1,96 +1,41 @@
 {
   "version": 1,
-  "openings": [
+  "tactics": [
     {
-      "id": "italian_giuoco_piano",
-      "name": "Italian Game \u2014 Giuoco Piano",
-      "side": "white",
-      "startFen": "startpos",
-      "lines": [
-        {
-          "name": "Main line",
-          "movesUci": [
-            "e2e4",
-            "e7e5",
-            "g1f3",
-            "b8c6",
-            "f1c4",
-            "f8c5",
-            "c2c3",
-            "g8f6",
-            "d2d4",
-            "e5d4",
-            "c3d4",
-            "c5b4"
-          ]
-        },
-        {
-          "name": "Two Knights Defence",
-          "movesUci": [
-            "e2e4",
-            "e7e5",
-            "g1f3",
-            "b8c6",
-            "f1c4",
-            "g8f6",
-            "d2d4",
-            "e5d4",
-            "f3g5",
-            "d7d5"
-          ]
-        }
+      "id": "T001",
+      "title": "Mate in 2",
+      "fen": "q3k1nr/1pp1nQpp/3p4/1P2p3/4P3/B1PP1b2/B5PP/5K2 b k - 0 17",
+      "sideToMove": "b",
+      "solutionUci": [
+        "e8d7",
+        "a2e6",
+        "d7d8",
+        "f7f8"
       ],
-      "ideas": [
-        "Develop quickly",
-        "Castle early",
-        "Prepare d4 break"
+      "themes": [
+        "mate",
+        "mateIn2",
+        "short"
       ],
-      "tags": [
-        "open",
-        "classical"
-      ]
+      "rating": 900
     },
     {
-      "id": "queens_gambit",
-      "name": "Queen's Gambit",
-      "side": "white",
-      "startFen": "startpos",
-      "lines": [
-        {
-          "name": "Declined main",
-          "movesUci": [
-            "d2d4",
-            "d7d5",
-            "c2c4",
-            "e7e6",
-            "b1c3",
-            "g8f6",
-            "c1g5",
-            "f8e7"
-          ]
-        },
-        {
-          "name": "Accepted",
-          "movesUci": [
-            "d2d4",
-            "d7d5",
-            "c2c4",
-            "d5c4",
-            "e2e3",
-            "b8c6",
-            "f1c4",
-            "e7e5"
-          ]
-        }
+      "id": "T002",
+      "title": "Fork",
+      "fen": "r3r1k1/p4ppp/2p2n2/1p6/3P1qb1/2NQR3/PPB2PP1/R1B3K1 w - - 5 18",
+      "sideToMove": "w",
+      "solutionUci": [
+        "e3g3",
+        "e8e1",
+        "g1h2",
+        "e1c1"
       ],
-      "ideas": [
-        "Fight for the center",
-        "Develop pieces behind pawns",
-        "Typical plan: e4 break"
+      "themes": [
+        "fork",
+        "tactic",
+        "attack"
       ],
-      "tags": [
-        "queen_pawn"
-      ]
+      "rating": 1200
     }
   ]
 }
