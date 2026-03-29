@@ -96,6 +96,28 @@ undoBtn.addEventListener('click', undo);
 redoBtn.addEventListener('click', redo);
 stopBtn.addEventListener('click', stopSearch);
 
+
+hintBtn.addEventListener('click', ()=>{
+  if(gameOver) return;
+
+  const bm = pickFromBook();
+  if(bm){
+    hintMove={...bm,source:'book'};
+    render();
+    return;
+  }
+
+  if(isLowElo()){
+    initSimpleEngine();
+    simpleEngine.postMessage({
+      type:'search',
+      state:{ board, turn }
+    });
+  } else {
+    requestStockfishBestMove({ forHint:true });
+  }
+});
+
 searchModeEl.addEventListener('change', ()=>{
   if(searchModeEl.value==='time'){ timeWrap.style.display='inline-flex'; depthWrap.style.display='none'; }
   else { timeWrap.style.display='none'; depthWrap.style.display='inline-flex'; }
