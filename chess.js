@@ -239,6 +239,12 @@ function startNewGame(){
   maybeAiMove();
 }
 
+function isLowElo(){
+  if(!strengthSliderEl) return false;
+  const raw = parseInt(strengthSliderEl.value,10)||0;
+  return raw > 0 && raw < 600;
+}
+  
 // FEN
 function boardToFen(){
   const ranks=[];
@@ -1008,19 +1014,36 @@ hintBtn.addEventListener('click', ()=>{
 
 clearHintBtn.addEventListener('click', ()=>{ hintMove=null; notice(''); render(); });
 
+
 function maybeAiMove(){
   if(globalThis.__TRAINING_ACTIVE__) return;
   if(!vsCompEl.checked || gameOver) return;
-  const human=humanSideEl.value;
-  const aiColor=(human==='white')?'black':'white';
-  if(turn!==aiColor) return;
-  if(currentPly!==timeline.length-1) return;
 
-  const bm=pickFromBook();
-  if(bm){ withMoveSource('engine', ()=> applyMove(bm.sr,bm.sc,bm.er,bm.ec)); return; }
+  const human = humanSideEl.value;
+  const aiColor = human === 'white' ? 'black' : 'white';
+  if(turn !== aiColor) return;
+  if(currentPly !== timeline.length-1) return;
 
-  requestStockfishBestMove({forHint:false});
+  const bm = pickFromBook();
+  if(bm){
+    withMoveSource('engine', () =>
+      applyMove(bm.sr, bm.sc, bm.er, bm.ec)
+    );
+    return;
+  }
+
+  if(isLowElo()){
+    initSimpleEngine();
+    awaitingSimpleMove = true;
+    simpleEngine.postMessage({
+      type:'search',
+      state:{ board, turn }
+    });
+  } else {
+    requestStockfishBestMove({ forHint:false });
+  }
 }
+
 
 vsCompEl.addEventListener('change', ()=> maybeAiMove());
 
