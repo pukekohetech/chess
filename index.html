@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Chess — Stockfish 16 (Offline)</title>
+<title>Chess — Stockfish 16 (Offline + Elo Slider)</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -35,7 +35,12 @@
       <label id="timeWrap">Think (ms): <input type="number" id="thinkTime" min="100" max="5000" step="100" value="800"></label>
       <label id="depthWrap" style="display:none;">Depth: <input type="number" id="depth" min="2" max="5" value="3" style="width:64px;"></label>
 
-      <label>Board size: <input type="range" id="boardSize" min="56" max="140" value="96"></label>
+     
+ <label title="Limit Stockfish strength by Elo">
+  Elo: <input type="range" id="eloSlider" min="0" max="2000" step="50" value="0" style="width:220px; vertical-align:middle;">
+  <span id="eloValue" style="font-family:monospace;">Unlimited</span>
+ </label>
+ <label>Board size: <input type="range" id="boardSize" min="56" max="140" value="96"></label>
       <label><input type="checkbox" id="focusMode"> Focus mode</label>
       <label><input type="checkbox" id="showHints" checked> Hints</label>
       <label><input type="checkbox" id="showOverlays" checked> Threat/guard</label>

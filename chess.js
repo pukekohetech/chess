@@ -755,13 +755,14 @@ function pickFromBook(){
 
 
 // ===============================
-// Stockfish 16 (single-threaded) — OFFLINE
-// Place these files next to index.html:
+// Stockfish 16 (single-threaded) — OFFLINE + Elo slider
+// Required files next to index.html:
 //   - stockfish-nnue-16-single.js
 //   - stockfish-nnue-16-single.wasm
-// Then this app will run fully offline.
 // ===============================
 const STOCKFISH_WORKER_URL = 'stockfish-nnue-16-single.js';
+const eloSliderEl = document.getElementById('eloSlider');
+const eloValueEl  = document.getElementById('eloValue');
 
 let stockfish=null;
 let stockfishReady=false;
@@ -781,7 +782,7 @@ function initStockfish(){
   try{
     stockfish = new Worker(STOCKFISH_WORKER_URL);
   }catch(err){
-    sfNoticeError('Cannot start engine worker. Ensure the Stockfish files are present and you are using HTTPS (GitHub Pages).');
+    sfNoticeError('Cannot start engine worker. Ensure Stockfish files exist next to this page.');
     throw err;
   }
 
@@ -792,18 +793,21 @@ function initStockfish(){
 
   stockfish.onmessage = (e)=>{
     const line = (typeof e.data==='string') ? e.data : '';
-    // console.log('[SF]', line);
 
     if(line==='uciok'){
       stockfish.postMessage('isready');
       return;
     }
+
     if(line==='readyok'){
       stockfishReady=true;
       for(const cmd of sfQueue) stockfish.postMessage(cmd);
       sfQueue=[];
+      // Apply Elo limiting once engine is ready
+      applyEloDifficulty();
       return;
     }
+
     if(line.startsWith('bestmove')){
       const uci=line.split(/\s+/)[1];
       handleStockfishBestmove(uci);
@@ -819,6 +823,52 @@ function sfSend(cmd){
   if(stockfishReady) stockfish.postMessage(cmd);
   else sfQueue.push(cmd);
 }
+
+function setEloLabel(v){
+  if(!eloValueEl) return;
+  const n = parseInt(v, 10) || 0;
+  if(n < 800) eloValueEl.textContent = 'Unlimited';
+  else eloValueEl.textContent = String(n);
+}
+
+function applyEloDifficulty(){
+  if(!eloSliderEl) return;
+  const raw = parseInt(eloSliderEl.value, 10) || 0;
+
+  // Persist
+  try{ store.set('chess_elo_slider', String(raw)); }catch(_e){}
+
+  setEloLabel(raw);
+
+  if(raw < 800){
+    // Disable Elo limiting
+    sfSend('setoption name UCI_LimitStrength value false');
+    return;
+  }
+
+  const elo = Math.max(800, Math.min(2000, raw));
+  sfSend('setoption name UCI_LimitStrength value true');
+  sfSend('setoption name UCI_Elo value ' + elo);
+}
+
+// Initialize Elo slider from storage
+(function initEloUi(){
+  if(!eloSliderEl) return;
+  try{
+    const saved = store.get('chess_elo_slider');
+    if(saved != null && saved !== ''){
+      eloSliderEl.value = String(saved);
+    }
+  }catch(_e){}
+  setEloLabel(eloSliderEl.value);
+  eloSliderEl.addEventListener('input', ()=>{
+    setEloLabel(eloSliderEl.value);
+  });
+  eloSliderEl.addEventListener('change', ()=>{
+    // Apply immediately if engine already running; otherwise it will apply on readyok.
+    applyEloDifficulty();
+  });
+})();
 
 function stopSearch(){
   if(stockfish) stockfish.postMessage('stop');
