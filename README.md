@@ -1,10 +1,17 @@
-# Chess — Stockfish 16 Offline + Elo Slider (Fixed)
+# Chess — Stockfish 16 Offline + Strength Slider
 
-Fixes: `sq is not defined` by using an internal `sqLabel()` helper.
+## What you get
+- A clearer strength slider with a big readout.
+- Slider supports **very low** levels using Stockfish `Skill Level` (0–20).
+- For higher values it switches to Elo limiter (`UCI_LimitStrength` + `UCI_Elo`).
 
-## Required engine files (keep next to index.html)
+## Notes
+Stockfish `UCI_Elo` typically supports **1320–3190**. Below that, the app uses `Skill Level` instead.
+
+## Required engine files
+Keep these next to `index.html`:
 - stockfish-nnue-16-single.js
 - stockfish-nnue-16-single.wasm
 
 ## Deploy
-Upload index.html, style.css, chess.js to your GitHub Pages folder and keep the two engine files alongside.
+Upload `index.html`, `style.css`, `chess.js` and keep the engine files alongside.

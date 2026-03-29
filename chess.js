@@ -755,14 +755,21 @@ function pickFromBook(){
 
 
 // ===============================
-// Stockfish 16 (single-threaded) — OFFLINE + Elo slider
+// Stockfish 16 (single-threaded) — OFFLINE + Strength Slider
 // Required files next to index.html:
 //   - stockfish-nnue-16-single.js
 //   - stockfish-nnue-16-single.wasm
 // ===============================
 const STOCKFISH_WORKER_URL = 'stockfish-nnue-16-single.js';
-const eloSliderEl = document.getElementById('eloSlider');
-const eloValueEl  = document.getElementById('eloValue');
+
+// UI elements
+const strengthSliderEl = document.getElementById('strengthSlider');
+const strengthReadoutEl = document.getElementById('strengthReadout');
+const strengthHelpEl = document.getElementById('strengthHelp');
+
+// Stockfish UCI_Elo commonly supports 1320–3190. Below that we use Skill Level. 
+const UCI_ELO_MIN = 1320;
+const UCI_ELO_MAX = 3190;
 
 // Local square label helper (avoid dependency on app globals)
 const sqLabel = (r,c)=> String.fromCharCode(97+c) + (8-r);
@@ -806,8 +813,8 @@ function initStockfish(){
       stockfishReady=true;
       for(const cmd of sfQueue) stockfish.postMessage(cmd);
       sfQueue=[];
-      // Apply Elo limiting once engine is ready
-      applyEloDifficulty();
+      // Apply strength once engine is ready
+      applyStrengthFromSlider();
       return;
     }
 
@@ -827,50 +834,72 @@ function sfSend(cmd){
   else sfQueue.push(cmd);
 }
 
-function setEloLabel(v){
-  if(!eloValueEl) return;
-  const n = parseInt(v, 10) || 0;
-  if(n < 800) eloValueEl.textContent = 'Unlimited';
-  else eloValueEl.textContent = String(n);
+function setStrengthReadout(text){
+  if(strengthReadoutEl) strengthReadoutEl.textContent = text;
 }
 
-function applyEloDifficulty(){
-  if(!eloSliderEl) return;
-  const raw = parseInt(eloSliderEl.value, 10) || 0;
+function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
+
+function computeSkillFromRange(v){
+  // Map 1..(UCI_ELO_MIN-1) to skill 0..20
+  const maxv = UCI_ELO_MIN - 1;
+  const t = clamp(v, 1, maxv) / maxv;
+  return clamp(Math.round(t * 20), 0, 20);
+}
+
+function applyStrengthFromSlider(){
+  if(!strengthSliderEl) return;
+  const raw = parseInt(strengthSliderEl.value, 10) || 0;
 
   // Persist
-  try{ store.set('chess_elo_slider', String(raw)); }catch(_e){}
+  try{ store.set('chess_strength_slider', String(raw)); }catch(_e){}
 
-  setEloLabel(raw);
-
-  if(raw < 800){
-    // Disable Elo limiting
+  if(raw <= 0){
+    // Unlimited
+    setStrengthReadout('Unlimited');
+    if(strengthHelpEl) strengthHelpEl.textContent = 'Unlimited: full strength (your Time/Depth settings still apply).';
     sfSend('setoption name UCI_LimitStrength value false');
+    sfSend('setoption name Skill Level value 20');
     return;
   }
 
-  const elo = Math.max(800, Math.min(2000, raw));
+  if(raw < UCI_ELO_MIN){
+    // Use Skill Level for very low strength
+    const skill = computeSkillFromRange(raw);
+    setStrengthReadout('Beginner (Skill ' + skill + '/20)');
+    if(strengthHelpEl) strengthHelpEl.textContent = 'Low range uses Stockfish “Skill Level” (0 weakest → 20 strongest).';
+    sfSend('setoption name UCI_LimitStrength value false');
+    sfSend('setoption name Skill Level value ' + skill);
+    return;
+  }
+
+  // Elo-limited (1320–3190 typical)
+  const elo = clamp(raw, UCI_ELO_MIN, UCI_ELO_MAX);
+  setStrengthReadout('Elo ' + elo);
+  if(strengthHelpEl) strengthHelpEl.textContent = 'Elo limiter active (UCI_LimitStrength + UCI_Elo).';
   sfSend('setoption name UCI_LimitStrength value true');
   sfSend('setoption name UCI_Elo value ' + elo);
 }
 
-// Initialize Elo slider from storage
-(function initEloUi(){
-  if(!eloSliderEl) return;
+// Init slider UI
+(function initStrengthUi(){
+  if(!strengthSliderEl) return;
   try{
-    const saved = store.get('chess_elo_slider');
-    if(saved != null && saved !== ''){
-      eloSliderEl.value = String(saved);
-    }
+    const saved = store.get('chess_strength_slider');
+    if(saved != null && saved !== '') strengthSliderEl.value = String(saved);
   }catch(_e){}
-  setEloLabel(eloSliderEl.value);
-  eloSliderEl.addEventListener('input', ()=>{
-    setEloLabel(eloSliderEl.value);
-  });
-  eloSliderEl.addEventListener('change', ()=>{
-    // Apply immediately if engine already running; otherwise it will apply on readyok.
-    applyEloDifficulty();
-  });
+
+  // Update readout live
+  const updateOnly = ()=>{
+    const raw = parseInt(strengthSliderEl.value, 10) || 0;
+    if(raw <= 0) setStrengthReadout('Unlimited');
+    else if(raw < UCI_ELO_MIN) setStrengthReadout('Beginner (Skill ' + computeSkillFromRange(raw) + '/20)');
+    else setStrengthReadout('Elo ' + clamp(raw, UCI_ELO_MIN, UCI_ELO_MAX));
+  };
+
+  updateOnly();
+  strengthSliderEl.addEventListener('input', updateOnly);
+  strengthSliderEl.addEventListener('change', ()=> applyStrengthFromSlider());
 })();
 
 function stopSearch(){

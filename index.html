@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Chess — Stockfish 16 (Offline + Elo Slider)</title>
+<title>Chess — Stockfish 16 (Offline + Strength Slider)</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -36,10 +36,24 @@
       <label id="depthWrap" style="display:none;">Depth: <input type="number" id="depth" min="2" max="5" value="3" style="width:64px;"></label>
 
      
- <label title="Limit Stockfish strength by Elo">
-  Elo: <input type="range" id="eloSlider" min="0" max="2000" step="50" value="0" style="width:220px; vertical-align:middle;">
-  <span id="eloValue" style="font-family:monospace;">Unlimited</span>
- </label>
+
+<div class="elo-panel" id="eloPanel">
+  <div class="elo-head">
+    <div class="elo-title">Engine strength</div>
+    <div class="elo-readout" id="strengthReadout">Unlimited</div>
+  </div>
+  <div class="elo-controls">
+    <input type="range" id="strengthSlider" min="0" max="3190" step="25" value="0" />
+    <div class="elo-scale">
+      <span>Unlimited</span>
+      <span>Beginner</span>
+      <span>Club</span>
+      <span>Strong</span>
+    </div>
+    <div class="elo-help" id="strengthHelp">0 = Unlimited. 1–1319 adjusts “Skill Level”. 1320–3190 sets Elo target.</div>
+  </div>
+</div>
+
  <label>Board size: <input type="range" id="boardSize" min="56" max="140" value="96"></label>
       <label><input type="checkbox" id="focusMode"> Focus mode</label>
       <label><input type="checkbox" id="showHints" checked> Hints</label>
