@@ -4,6 +4,8 @@ function withMoveSource(src, fn){ const prev = MOVE_SOURCE; MOVE_SOURCE = src; t
 
 (()=>{
 'use strict';
+// Global flag avoids TDZ issues (trainingActive is declared later in the file)
+globalThis.__TRAINING_ACTIVE__ = false;
 
 // Error banner
 const errBox = document.getElementById('errBox');
@@ -1007,8 +1009,7 @@ hintBtn.addEventListener('click', ()=>{
 clearHintBtn.addEventListener('click', ()=>{ hintMove=null; notice(''); render(); });
 
 function maybeAiMove(){
-  if(typeof trainingActive!=='undefined' && trainingActive) return;
-if(!vsCompEl.checked || gameOver) return;
+  if(!vsCompEl.checked || gameOver) return;
   const human=humanSideEl.value;
   const aiColor=(human==='white')?'black':'white';
   if(turn!==aiColor) return;
@@ -1035,39 +1036,6 @@ let trainingMode = 'openings'; // 'openings'|'tactics'
 let trainingActive = false;
 let openingState = null;
 let tacticState = null;
-
-// Training/Play mode interlock (auto-disable Play vs Computer during training)
-let __prevVsComp = null;
-let __prevHumanSide = null;
-function enterTrainingMode(){
-  try{
-    if(__prevVsComp===null){
-      __prevVsComp = !!vsCompEl.checked;
-      __prevHumanSide = humanSideEl ? humanSideEl.value : null;
-    }
-    // stop any engine search before freezing play-vs-computer
-    try{ stopSearch(); }catch(_e){}
-    if(vsCompEl){
-      vsCompEl.checked = false;
-      // fire change event so UI/state updates stay consistent
-      vsCompEl.dispatchEvent(new Event('change'));
-    }
-  }catch(_e){}
-}
-
-function exitTrainingMode(){
-  try{
-    if(__prevVsComp===null) return;
-    if(vsCompEl){
-      vsCompEl.checked = __prevVsComp;
-      vsCompEl.dispatchEvent(new Event('change'));
-    }
-    if(humanSideEl && __prevHumanSide) humanSideEl.value = __prevHumanSide;
-  }catch(_e){}
-  __prevVsComp = null;
-  __prevHumanSide = null;
-}
-
 
 const trainTabOpenings = document.getElementById('trainTabOpenings');
 const trainTabTactics = document.getElementById('trainTabTactics');
@@ -1242,11 +1210,9 @@ function openingAutoAdvance(){
   trainingActive = false;
   openingState = null;
   setTrainingStatus('Opening line complete ✅');
-  exitTrainingMode();
 }
 
 function startOpeningTraining(){
-  enterTrainingMode();
   const o = getSelectedOpening();
   if(!o){ setTrainingStatus('No openings loaded.'); return; }
   const lineIdx = parseInt(openingLineSelect.value,10) || 0;
@@ -1274,7 +1240,6 @@ function stopTraining(){
   openingState = null;
   tacticState = null;
   setTrainingStatus('Training stopped.');
-  exitTrainingMode();
 }
 
 if(startOpeningBtn) startOpeningBtn.addEventListener('click', startOpeningTraining);
@@ -1298,7 +1263,6 @@ function pickNextTactic(){
 }
 
 function startTactic(t){
-  enterTrainingMode();
   setPositionFromFenOrStart(t.fen);
   trainingActive = true;
   tacticState = {
@@ -1364,8 +1328,7 @@ function trainingOnUserMove(uci){
   if(openingState){
     const expected = openingState.moves[openingState.idx];
     if(!expected){
-      trainingActive=false; openingState=null; setTrainingStatus('Opening complete ✅');
-      exitTrainingMode(); return;
+      trainingActive=false; openingState=null; setTrainingStatus('Opening complete ✅'); return;
     }
     if(uci !== expected){
       setTrainingStatus(`❌ Not quite. Expected ${expected}. Try again.`);
@@ -1393,8 +1356,7 @@ function trainingOnUserMove(uci){
   if(tacticState){
     const expected = tacticState.solution[tacticState.idx];
     if(!expected){
-      trainingActive=false; tacticState=null; setTrainingStatus('Puzzle solved ✅');
-  exitTrainingMode(); return;
+      trainingActive=false; tacticState=null; setTrainingStatus('Puzzle solved ✅'); return;
     }
     if(uci !== expected){
       setTrainingStatus(`❌ Try again. Expected ${expected}.`);
@@ -1427,6 +1389,5 @@ function trainingOnUserMove(uci){
     trainingActive=false;
     tacticState=null;
     setTrainingStatus('Puzzle solved ✅');
-  exitTrainingMode();
   }
 }
