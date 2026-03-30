@@ -1243,7 +1243,7 @@ hintBtn.addEventListener('click', ()=>{
   requestStockfishBestMove({forHint:true});
 });
 
-});
+
 
 clearHintBtn.addEventListener('click', ()=>{ hintMove=null; notice(''); render(); });
 
@@ -1698,7 +1698,7 @@ function trainingOnUserMove(uci){
     setTrainingStatus('Puzzle solved ✅');
   }
 
-
+}
 
 
 // Start
