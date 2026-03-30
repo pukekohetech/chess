@@ -769,21 +769,74 @@ function handleSquareClick(r,c){
 
   const p=board[r][c];
 
-  if(selected){
-    if(validMove(selected.r,selected.c,r,c,true)){
-      stopSearch();
-      const moving=board[selected.r][selected.c];
-      const isPromo=(moving.toLowerCase()==='p' && (r===0||r===7));
-      if(isPromo){
-        const color=isWhite(moving)?'white':'black';
-        const sr=selected.r, sc=selected.c, er=r, ec=c;
-        selected=null; render();
-        showPromotionPicker(color, (choice)=> applyMove(sr,sc,er,ec,choice));
+if(selected){
+  if(validMove(selected.r,selected.c,r,c,true)){
+
+    // === Candidate-move gating (TACTICS ONLY) ===
+    if(tacticState && trainingActive && tacticState.candidateMode){
+
+      // prevent duplicate candidate
+      const exists = tacticState.candidates.some(
+        m => m.sr===selected.r && m.sc===selected.c && m.er===r && m.ec===c
+      );
+
+      if(!exists){
+        // record candidate
+        tacticState.candidates.push({
+          sr: selected.r,
+          sc: selected.c,
+          er: r,
+          ec: c
+        });
+
+        // mark square
+        const sq = boardEl.children[
+          (orientation==='white')
+            ? r*8 + c
+            : (7-r)*8 + (7-c)
+        ];
+        sq.classList.add('candidate');
+        sq.dataset.candidate = String(tacticState.candidates.length);
+
+        notice(
+          tacticState.candidates.length < REQUIRED_CANDIDATES
+            ? `🧠 Select ${REQUIRED_CANDIDATES - tacticState.candidates.length} more candidate move`
+            : '✅ Candidates locked. Play your move.'
+        );
+
+        if(tacticState.candidates.length >= REQUIRED_CANDIDATES){
+          tacticState.candidateMode = false;
+          lockCandidates();
+        }
+
+        selected = null;
+        render();
         return;
       }
-      applyMove(selected.r,selected.c,r,c);
-      return;
     }
+
+    // === Actual move execution ===
+    if(tacticState && trainingActive){
+      // if candidates required but not selected yet
+      if(tacticState.candidateMode){
+        notice('⛔ Choose your candidate moves first.');
+        selected = null;
+        render();
+        return;
+      }
+    }
+
+    // Normal execution
+    stopSearch();
+    applyMove(selected.r,selected.c,r,c);
+    return;
+  }
+
+  selected=null;
+  render();
+  return;
+}
+
     selected=null; render();
     return;
   }
@@ -1279,8 +1332,13 @@ let trainingMode = 'openings'; // 'openings'|'tactics'
 let trainingActive = false;
 function enterTrainingMode(){ globalThis.__TRAINING_ACTIVE__ = true; }
 function exitTrainingMode(){ globalThis.__TRAINING_ACTIVE__ = false; }
-let openingState = null;
+
+et openingState = null;
 let tacticState = null;
+
+// Candidate-move training (tactics only)
+const REQUIRED_CANDIDATES = 2;
+
 
 const trainTabOpenings = document.getElementById('trainTabOpenings');
 const trainTabTactics = document.getElementById('trainTabTactics');
@@ -1352,6 +1410,21 @@ function readJsonFile(file){
     };
     reader.onerror = ()=> reject(reader.error);
     reader.readAsText(file);
+  });
+}
+function clearCandidates(){
+  if(!tacticState) return;
+  tacticState.candidates = [];
+  tacticState.candidateMode = true;
+  document.querySelectorAll('.square.candidate').forEach(sq=>{
+    sq.classList.remove('candidate','locked');
+    delete sq.dataset.candidate;
+  });
+}
+
+function lockCandidates(){
+  document.querySelectorAll('.square.candidate').forEach(sq=>{
+    sq.classList.add('locked');
   });
 }
 
@@ -1570,14 +1643,21 @@ function startTactic(t){
   enterTrainingMode();
   setPositionFromFenOrStart(t.fen);
   trainingActive = true;
-  tacticState = {
-    id: t.id,
-    fen: t.fen,
-    solution: (t.solutionUci||[]).slice(),
-    idx: 0,
-    studentColor: (t.sideToMove==='b') ? 'black' : 'white',
-    meta: t
-  };
+
+tacticState = {
+  id: t.id,
+  fen: t.fen,
+  solution: t.solutionUci.slice(),
+  idx: 0,
+  studentColor: (t.sideToMove==='b') ? 'black' : 'white',
+  meta: t,
+
+  // Candidate-move training
+  candidateMode: true,
+  candidates: [],
+  attempts: 0
+};
+
 
   if(tacInfoEl){
     tacInfoEl.textContent = `${t.title||'Puzzle'} • Rating ${t.rating||'?'} • Themes: ${(t.themes||[]).join(', ')}`;
