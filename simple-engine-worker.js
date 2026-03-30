@@ -1,15 +1,14 @@
 /*
   simple-engine-worker.js
-  Legal, human-like engine for ~400–1000 Elo
-  Used by the main app when Elo slider is below SIMPLE_ENGINE_SWITCH_ELO.
+  Legal, human-like engine with 2 simple-engine tiers:
+  - beginner: forgiving, human-like, still makes mistakes
+  - club: more solid, fewer blunders, no casual queen hangs
 
-  Supports:
-  - Check legality (no self-check)
-  - Castling (through-check safe)
-  - En-passant
-  - Promotion (mostly queen)
-  - Alpha-beta search depth scaled by Elo
-  - Human-like mistakes (blunders, greedy captures, queen hangs)
+  Used by the main app for:
+  - Beginner engine (400–699 Elo)
+  - Club engine (700–1299 Elo)
+
+  Advanced tier uses Stockfish in the main app.
 */
 
 let stopped = false;
@@ -24,9 +23,12 @@ onmessage = (e) => {
     stopped = false;
     const seq = msg.seq || 0;
     const elo = typeof msg.elo === 'number' ? msg.elo : 600;
+    const tier = msg.tier || 'beginner';
     const state = msg.state;
-    const result = chooseMove(state, elo);
-    if (!stopped) postMessage({ type: 'result', seq, move: result.move, score: result.score });
+    const result = chooseMove(state, elo, tier);
+    if (!stopped) {
+      postMessage({ type: 'result', seq, move: result.move, score: result.score, tier });
+    }
   }
 };
 
@@ -39,7 +41,7 @@ function clone(s){
     board: s.board.map(r => r.slice()),
     turn: s.turn,
     enPassant: s.enPassant ? { r:s.enPassant.r, c:s.enPassant.c } : null,
-    castling: s.castling ? { ...s.castling } : { WK:false,WQ:false,BK:false,BQ:false }
+    castling: s.castling ? { ...s.castling } : { WK:false, WQ:false, BK:false, BQ:false }
   };
 }
 
@@ -127,16 +129,13 @@ function legalPseudoMove(s, sr, sc, er, ec){
   switch (p.toLowerCase()) {
     case 'p': {
       const d = isWhite(p) ? -1 : 1;
-      // single push
       if (dc === 0 && dr === d && t === '.') return true;
-      // double push
       if (dc === 0 && dr === 2*d && t === '.') {
         const startRow = isWhite(p) ? 6 : 1;
         if (sr !== startRow) return false;
         if (b[sr + d][sc] !== '.') return false;
         return true;
       }
-      // capture or en-passant
       if (Math.abs(dc) === 1 && dr === d) {
         if (t !== '.') return true;
         if (s.enPassant && er === s.enPassant.r && ec === s.enPassant.c) return true;
@@ -149,17 +148,15 @@ function legalPseudoMove(s, sr, sc, er, ec){
     case 'q': return (dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc)) && pathClear(b, sr, sc, er, ec);
     case 'k': {
       if (Math.abs(dr) <= 1 && Math.abs(dc) <= 1) return true;
-      // castling attempt: king moves 2 squares
       if (dr === 0 && Math.abs(dc) === 2) {
         const side = dc > 0 ? 'K' : 'Q';
-        const rightsKey = (isWhite(p) ? 'W' : 'B') + side; // WK/WQ/BK/BQ
+        const rightsKey = (isWhite(p) ? 'W' : 'B') + side;
         if (!s.castling || !s.castling[rightsKey]) return false;
         const rookCol = side === 'K' ? 7 : 0;
         const rook = b[sr][rookCol];
         if (rook === '.' || rook.toLowerCase() !== 'r' || isWhite(rook) !== isWhite(p)) return false;
         const step = dc > 0 ? 1 : -1;
         for (let cc = sc + step; cc !== rookCol; cc += step) if (b[sr][cc] !== '.') return false;
-        // cannot castle out of/through/into check
         const enemy = isWhite(p) ? 'black' : 'white';
         if (squareAttackedBy(b, sr, sc, enemy)) return false;
         if (squareAttackedBy(b, sr, sc + step, enemy)) return false;
@@ -177,34 +174,28 @@ function makeMove(s, m){
   const p = b[m.sr][m.sc];
   const t = b[m.er][m.ec];
 
-  // en-passant capture remove pawn behind
   if (p.toLowerCase() === 'p' && s.enPassant && m.er === s.enPassant.r && m.ec === s.enPassant.c && t === '.') {
     b[m.sr][m.ec] = '.';
   }
 
-  // castling rook move
   if (p.toLowerCase() === 'k' && Math.abs(m.ec - m.sc) === 2) {
     if (m.ec === 6) { b[m.sr][5] = b[m.sr][7]; b[m.sr][7] = '.'; }
     else { b[m.sr][3] = b[m.sr][0]; b[m.sr][0] = '.'; }
   }
 
-  // move piece
   b[m.er][m.ec] = p;
   b[m.sr][m.sc] = '.';
 
-  // promotion (mostly queen)
   if (p.toLowerCase() === 'p' && (m.er === 0 || m.er === 7)) {
     const choice = (m.promo || 'Q').toUpperCase();
     b[m.er][m.ec] = isWhite(p) ? choice : choice.toLowerCase();
   }
 
-  // update enPassant
   s.enPassant = null;
   if (p.toLowerCase() === 'p' && Math.abs(m.er - m.sr) === 2) {
     s.enPassant = { r: (m.sr + m.er) / 2, c: m.sc };
   }
 
-  // update castling rights
   if (s.castling) {
     if (p === 'K') { s.castling.WK = false; s.castling.WQ = false; }
     if (p === 'k') { s.castling.BK = false; s.castling.BQ = false; }
@@ -222,7 +213,6 @@ function makeMove(s, m){
     }
   }
 
-  // side to move
   s.turn = s.turn === 'white' ? 'black' : 'white';
 }
 
@@ -233,7 +223,6 @@ function validMove(s, sr, sc, er, ec, promo){
   const snap = clone(s);
   makeMove(s, {sr,sc,er,ec,promo});
   const bad = kingInCheck(s.board, me);
-  // restore
   s.board = snap.board;
   s.turn = snap.turn;
   s.enPassant = snap.enPassant;
@@ -249,7 +238,6 @@ function listMoves(s, allowPromo=true){
     if ((isWhite(p)?'white':'black') !== s.turn) continue;
     for (let er=0;er<8;er++) for (let ec=0;ec<8;ec++) {
       if (!legalPseudoMove(s, r, c, er, ec)) continue;
-      // promotions: keep simple (Q/N) to add variety
       if (allowPromo && p.toLowerCase()==='p' && (er===0 || er===7)) {
         for (const promo of ['Q','N']) {
           if (validMove(s, r, c, er, ec, promo)) moves.push({sr:r,sc:c,er,ec,promo});
@@ -272,7 +260,6 @@ function evalCp(s){
     score += isWhite(p) ? v : -v;
   }
 
-  // king safety (cheap): penalize attacked squares around king
   for (const color of ['white','black']) {
     const k = findKing(b, color);
     if (!k) continue;
@@ -284,7 +271,6 @@ function evalCp(s){
       if (!inBounds(rr,cc)) continue;
       if (squareAttackedBy(b, rr, cc, enemy)) danger++;
     }
-    // also being in check is worse
     if (kingInCheck(b, color)) danger += 3;
     const pen = danger * 18;
     score += (color==='white') ? -pen : pen;
@@ -293,35 +279,51 @@ function evalCp(s){
   return score;
 }
 
-function depthForElo(elo){
-  const e = clamp(elo, 400, 1000);
-  // 400-650 => 2, 650-850 => 3, 850-1000 => 4
-  if (e < 650) return 2;
-  if (e < 850) return 3;
+function depthForTier(elo, tier){
+  if (tier === 'beginner') {
+    if (elo < 550) return 2;
+    return 3;
+  }
+  if (tier === 'club') {
+    if (elo < 900) return 4;
+    return 5;
+  }
   return 4;
 }
 
-function ratesForElo(elo){
-  const e = clamp(elo, 400, 1000);
-  const t = (e - 400) / 600; // 0..1
+function ratesForTier(elo, tier){
+  if (tier === 'beginner') {
+    return {
+      blunder: 0.18,
+      greedyCapture: 0.35,
+      queenHang: 0.06,
+      noise: 70
+    };
+  }
+
+  if (tier === 'club') {
+    return {
+      blunder: 0.05,
+      greedyCapture: 0.18,
+      queenHang: 0.00,
+      noise: 22
+    };
+  }
+
   return {
-    blunder: clamp(0.30 - 0.20*t, 0.08, 0.30),
-    greedyCapture: clamp(0.45 - 0.25*t, 0.10, 0.45),
-    queenHang: clamp(0.18 - 0.14*t, 0.02, 0.18),
-    noise: clamp(120 - 90*t, 18, 120) // centipawn noise
+    blunder: 0.08,
+    greedyCapture: 0.12,
+    queenHang: 0.00,
+    noise: 18
   };
 }
 
-function minimax(s, depth, alpha, beta, startTurn){
+function minimax(s, depth, alpha, beta){
   if (stopped) return {score: evalCp(s)};
   const moves = listMoves(s, true);
   if (depth === 0 || moves.length === 0) {
-    if (moves.length === 0) {
-      // checkmate / stalemate heuristic
-      if (kingInCheck(s.board, s.turn)) {
-        // side to move is mated
-        return {score: (s.turn === 'white') ? -99999 : 99999};
-      }
+    if (moves.length === 0 && kingInCheck(s.board, s.turn)) {
+      return {score: (s.turn === 'white') ? -99999 : 99999};
     }
     return {score: evalCp(s)};
   }
@@ -334,13 +336,11 @@ function minimax(s, depth, alpha, beta, startTurn){
     for (const m of moves) {
       const snap = clone(s);
       makeMove(s, m);
-      const res = minimax(s, depth-1, alpha, beta, startTurn);
-      // restore
+      const res = minimax(s, depth-1, alpha, beta);
       s.board = snap.board;
       s.turn = snap.turn;
       s.enPassant = snap.enPassant;
       s.castling = snap.castling;
-
       if (res.score > best) { best = res.score; bestMove = m; }
       alpha = Math.max(alpha, best);
       if (beta <= alpha) break;
@@ -352,13 +352,11 @@ function minimax(s, depth, alpha, beta, startTurn){
     for (const m of moves) {
       const snap = clone(s);
       makeMove(s, m);
-      const res = minimax(s, depth-1, alpha, beta, startTurn);
-      // restore
+      const res = minimax(s, depth-1, alpha, beta);
       s.board = snap.board;
       s.turn = snap.turn;
       s.enPassant = snap.enPassant;
       s.castling = snap.castling;
-
       if (res.score < best) { best = res.score; bestMove = m; }
       beta = Math.min(beta, best);
       if (beta <= alpha) break;
@@ -377,63 +375,60 @@ function findQueenSquare(b, color){
 function moveCaptures(b, m){
   const t = b[m.er][m.ec];
   if (t !== '.') return t;
-  // en-passant capture
   const p = b[m.sr][m.sc];
   if (p.toLowerCase()==='p' && m.sc !== m.ec) return 'p';
   return '.';
 }
 
-function chooseMove(stateIn, elo){
-  const s0 = clone(stateIn);
-  const depth = depthForElo(elo);
-  const rates = ratesForElo(elo);
+function moveHangsOwnQueen(s0, m){
+  const me = s0.turn;
+  const s = clone(s0);
+  makeMove(s, m);
 
-  const moves = listMoves(s0, true);
+  const q = findQueenSquare(s.board, me);
+  if (!q) return false;
+
+  const {atk, def} = countAttackersDefenders(s.board, q.r, q.c);
+  return atk > 0 && def === 0;
+}
+
+function chooseMove(stateIn, elo, tier = 'beginner'){
+  const s0 = clone(stateIn);
+  const depth = depthForTier(elo, tier);
+  const rates = ratesForTier(elo, tier);
+  let moves = listMoves(s0, true);
   if (!moves.length) return {move:null, score:0};
 
-  // Greedy capture bias (human trait)
-  if (Math.random() < rates.greedyCapture) {
+  if (tier === 'club') {
+    const safer = moves.filter(m => !moveHangsOwnQueen(s0, m));
+    if (safer.length) moves = safer;
+  }
+
+  if (tier === 'beginner' && Math.random() < rates.greedyCapture) {
     const caps = moves
       .map(m => ({m, cap: moveCaptures(s0.board, m)}))
       .filter(x => x.cap !== '.')
       .map(x => ({m:x.m, v: VAL[x.cap.toLowerCase()] || 0}))
       .sort((a,b)=>b.v-a.v);
     if (caps.length) {
-      // not always best capture, but prefer top few
       const pick = caps[Math.floor(Math.random() * Math.min(3, caps.length))].m;
       return {move: pick, score: 0};
     }
   }
 
-  // Run alpha-beta search
-  const res = minimax(s0, depth, -1e9, 1e9, s0.turn);
+  const res = minimax(s0, depth, -1e9, 1e9);
   let bestMove = res.move || moves[0];
   let bestScore = res.score;
-
-  // Add small noise to mimic inconsistency at low Elo
   bestScore += (Math.random()*2-1) * rates.noise;
 
-  // Queen-hang mistake: sometimes choose a move that leaves own queen en prise
-  if (Math.random() < rates.queenHang) {
-    const me = s0.turn;
-    const enemy = me==='white'?'black':'white';
-    const hangMoves = [];
-    for (const m of moves) {
-      const s = clone(s0);
-      makeMove(s, m);
-      const q = findQueenSquare(s.board, me);
-      if (!q) continue;
-      const {atk, def} = countAttackersDefenders(s.board, q.r, q.c);
-      if (atk > 0 && def === 0) hangMoves.push(m);
-    }
+  if (tier === 'beginner' && Math.random() < rates.queenHang) {
+    const hangMoves = moves.filter(m => moveHangsOwnQueen(s0, m));
     if (hangMoves.length) {
       return {move: hangMoves[Math.floor(Math.random()*hangMoves.length)], score: 0};
     }
   }
 
-  // Blunder: with some probability choose a clearly inferior move
   if (Math.random() < rates.blunder) {
-    // score all moves quickly at reduced depth 1
     const scored = [];
     for (const m of moves) {
       const s = clone(s0);
@@ -442,13 +437,25 @@ function chooseMove(stateIn, elo){
       scored.push({m, sc});
     }
     scored.sort((a,b)=> (s0.turn==='white' ? b.sc-a.sc : a.sc-b.sc));
-    // choose from bottom quartile
-    const start = Math.floor(scored.length * 0.75);
-    const pool = scored.slice(start);
-    if (pool.length) {
-      return {move: pool[Math.floor(Math.random()*pool.length)].m, score: 0};
+
+    if (tier === 'beginner') {
+      const start = Math.floor(scored.length * 0.70);
+      const pool = scored.slice(start);
+      if (pool.length) {
+        return {move: pool[Math.floor(Math.random()*pool.length)].m, score: 0};
+      }
+    }
+
+    if (tier === 'club') {
+      const start = Math.floor(scored.length * 0.50);
+      const end = Math.max(start + 1, Math.floor(scored.length * 0.80));
+      const pool = scored.slice(start, end);
+      if (pool.length) {
+        return {move: pool[Math.floor(Math.random()*pool.length)].m, score: 0};
+      }
     }
   }
 
   return {move: bestMove, score: bestScore};
 }
+``
