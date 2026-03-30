@@ -90,7 +90,8 @@ const flipBtn = document.getElementById('flipBtn');
 const undoBtn = document.getElementById('undoBtn');
 const redoBtn = document.getElementById('redoBtn');
 
-newBtn.addEventListener('click', startNewGame);
+//newBtn.addEventListener('click', startNewGame);
+  if(newBtn) newBtn.addEventListener('click', startNewGame);
 flipBtn.addEventListener('click', ()=>{ orientation = (orientation==='white')?'black':'white'; render(); });
 undoBtn.addEventListener('click', undo);
 redoBtn.addEventListener('click', redo);
@@ -689,6 +690,7 @@ function lessonFeedback(move, beforeSnap){
 
 // Render
 function render(){
+  let idx = 0;
   boardEl.innerHTML='';
   const rows = orientation==='white' ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0];
   const cols = orientation==='white' ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0];
@@ -697,6 +699,8 @@ function render(){
   for(const r of rows){
     for(const c of cols){
       const sq=document.createElement('div');
+       sq.dataset.idx = idx;
+    idx++;
       sq.className='square '+((r+c)%2?'dark':'light');
 
       const p=board[r][c];
@@ -790,11 +794,13 @@ if(selected){
         });
 
         // mark square
-        const sq = boardEl.children[
-          (orientation==='white')
-            ? r*8 + c
-            : (7-r)*8 + (7-c)
-        ];
+const sq = [...boardEl.children].find(el => 
+  el.dataset.idx == (
+    (orientation === 'white')
+      ? r * 8 + c
+      : (7 - r) * 8 + (7 - c)
+  )
+);
         sq.classList.add('candidate');
         sq.dataset.candidate = String(tacticState.candidates.length);
 
@@ -851,7 +857,7 @@ const BOOK_LINES=[
   'c2c4 e7e5 b1c3 g8f6 g2g3'
 ];
 function algToRC(alg){ return {c:alg.charCodeAt(0)-97, r:8-parseInt(alg[1],10)}; }
-function uciToMove(uci){ const a=algToRC(uci.slice(0,2)); const b=algToRC(uci.slice(2,4)); return {sr:a.r,sc:a.c,er:b.r,ec:b.c}; }
+//function uciToMove(uci){ const a=algToRC(uci.slice(0,2)); const b=algToRC(uci.slice(2,4)); return {sr:a.r,sc:a.c,er:b.r,ec:b.c}; }
 let OPENING_BOOK=null;
 function positionKey(){
   const ranks=[];
@@ -1730,9 +1736,10 @@ function trainingOnUserMove(uci){
         render();
       }catch(_e){}
       
-tacticState.attempts++;
-clearCandidates();
-
+if (tacticState) {
+  tacticState.attempts++;
+  clearCandidates();
+}
       return;
     }
     // correct
