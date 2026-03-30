@@ -826,10 +826,30 @@ if(selected){
       }
     }
 
-    // Normal execution
-    stopSearch();
-    applyMove(selected.r,selected.c,r,c);
-    return;
+    // Normal execution (with promotion picker restored)
+stopSearch();
+
+const moving = board[selected.r][selected.c];
+const isPromo = (moving && moving.toLowerCase() === 'p' && (r === 0 || r === 7));
+
+if(isPromo){
+  const color = isWhite(moving) ? 'white' : 'black';
+  const sr = selected.r, sc = selected.c, er = r, ec = c;
+
+  // Clear selection before showing modal (prevents extra clicks)
+  selected = null;
+  render();
+
+  showPromotionPicker(color, (choice) => {
+    // choice is 'Q','R','B','N'
+    applyMove(sr, sc, er, ec, choice);
+  });
+
+  return;
+}
+
+applyMove(selected.r, selected.c, r, c);
+return;
   }
 
   selected=null;
