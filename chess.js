@@ -1332,7 +1332,7 @@ function exitTrainingMode(){ globalThis.__TRAINING_ACTIVE__ = false; }
 
 
 // Training runtime state
-llet openingState = null;
+let openingState = null;
 let tacticState = null;
 
 // ===============================
