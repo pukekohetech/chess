@@ -1333,11 +1333,16 @@ let trainingActive = false;
 function enterTrainingMode(){ globalThis.__TRAINING_ACTIVE__ = true; }
 function exitTrainingMode(){ globalThis.__TRAINING_ACTIVE__ = false; }
 
-et openingState = null;
+
+// Training runtime state
+let openingState = null;
 let tacticState = null;
 
-// Candidate-move training (tactics only)
+// ===============================
+// Candidate-move training (TACTICS ONLY)
+// ===============================
 const REQUIRED_CANDIDATES = 2;
+
 
 
 const trainTabOpenings = document.getElementById('trainTabOpenings');
