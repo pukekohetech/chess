@@ -96,28 +96,6 @@ undoBtn.addEventListener('click', undo);
 redoBtn.addEventListener('click', redo);
 stopBtn.addEventListener('click', stopSearch);
 
-
-hintBtn.addEventListener('click', ()=>{
-  if(gameOver) return;
-
-  const bm = pickFromBook();
-  if(bm){
-    hintMove={...bm,source:'book'};
-    render();
-    return;
-  }
-
-  if(isLowElo()){
-    initSimpleEngine();
-    simpleEngine.postMessage({
-      type:'search',
-      state:{ board, turn }
-    });
-  } else {
-    requestStockfishBestMove({ forHint:true });
-  }
-});
-
 searchModeEl.addEventListener('change', ()=>{
   if(searchModeEl.value==='time'){ timeWrap.style.display='inline-flex'; depthWrap.style.display='none'; }
   else { timeWrap.style.display='none'; depthWrap.style.display='inline-flex'; }
@@ -261,12 +239,6 @@ function startNewGame(){
   maybeAiMove();
 }
 
-function isLowElo(){
-  if(!strengthSliderEl) return false;
-  const raw = parseInt(strengthSliderEl.value,10)||0;
-  return raw > 0 && raw < 600;
-}
-  
 // FEN
 function boardToFen(){
   const ranks=[];
@@ -615,6 +587,106 @@ function updateEval(){
   evalMarker.style.left=Math.max(0, Math.min(100, pct))+'%';
 }
 
+
+// ===============================
+// 🎓 Automatic lesson feedback (lightweight heuristics)
+// Shows short coaching messages after USER moves (not during training mode).
+// ===============================
+function pieceValue(p){
+  if(!p || p==='.') return 0;
+  const map={p:1,n:3,b:3,r:5,q:9,k:0};
+  return map[p.toLowerCase()]||0;
+}
+
+function findQueen(color){
+  const q = color==='white'?'Q':'q';
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(board[r][c]===q) return {r,c};
+  return null;
+}
+
+function maxImmediateCaptureValue(byColor){
+  // scans legal captures for side to move byColor in current position
+  let best = 0;
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const p=board[r][c];
+    if(p==='.' || (isWhite(p)?'white':'black')!==byColor) continue;
+    for(let er=0;er<8;er++) for(let ec=0;ec<8;ec++){
+      if(!validMove(r,c,er,ec,true)) continue;
+      const t=board[er][ec];
+      if(t!=='.') best = Math.max(best, pieceValue(t));
+      // en-passant capture (t=='.' but pawn diagonal to ep square)
+      if(t==='.' && p.toLowerCase()==='p' && enPassant && er===enPassant.r && ec===enPassant.c){
+        best = Math.max(best, 1);
+      }
+    }
+  }
+  return best;
+}
+
+function lessonFeedback(move, beforeSnap){
+  try{
+    const mover = isWhite(beforeSnap.board[move.sr][move.sc]) ? 'white' : 'black';
+    const enemy = mover==='white'?'black':'white';
+    const movedPiece = beforeSnap.board[move.sr][move.sc];
+    const captured = beforeSnap.board[move.er][move.ec] !== '.';
+
+    // Positive: check or castle
+    const gaveCheck = isKingInCheck(enemy);
+    const castled = (movedPiece.toLowerCase()==='k' && Math.abs(move.ec-move.sc)===2);
+
+    // Hanging detection for moved piece
+    const destPiece = board[move.er][move.ec];
+    let hangWarn = '';
+    if(destPiece && destPiece!=='.'){
+      const {atk,def} = countAttackersDefenders(move.er, move.ec);
+      if(atk>0 && def===0){
+        const v = pieceValue(destPiece);
+        if(v>=9) hangWarn = '⚠️ Your queen is hanging (can be captured).';
+        else if(v>=5) hangWarn = '⚠️ That piece is hanging (no defenders).';
+        else hangWarn = '⚠️ That piece can be captured and is undefended.';
+      }
+    }
+
+    // Queen safety (global)
+    let queenWarn = '';
+    const q = findQueen(mover);
+    if(q){
+      const {atk,def} = countAttackersDefenders(q.r, q.c);
+      if(atk>0 && def===0) queenWarn = '⚠️ Your queen is en prise — consider moving/defending it.';
+    }
+
+    // Tactical danger: can opponent win big material immediately?
+    const danger = maxImmediateCaptureValue(enemy);
+    let tacticWarn = '';
+    if(danger>=9) tacticWarn = '❌ Blunder alert: opponent can win a queen next move.';
+    else if(danger>=5) tacticWarn = '⚠️ Careful: opponent can win a rook or better next move.';
+
+    // Development tip (very simple)
+    let devTip = '';
+    const ply = beforeSnap.moveList ? beforeSnap.moveList.length : 0;
+    if(ply<6 && movedPiece.toLowerCase()==='q') devTip = 'Tip: early queen adventures often get chased — develop knights/bishops first.';
+    if(ply<10 && !castled){
+      // if king/rook moved already we won't nag too much
+      // but a gentle reminder helps beginners
+      if(movedPiece.toLowerCase()!=='k') devTip = devTip || 'Tip: consider castling soon to improve king safety.';
+    }
+
+    // Build final message (short)
+    const parts=[];
+    if(gaveCheck) parts.push('✅ Nice! You gave check.');
+    if(castled) parts.push('✅ Good habit: castling improves king safety.');
+    if(captured) parts.push('🎯 Capture made — always ask: “what can my opponent do now?”');
+    if(tacticWarn) parts.push(tacticWarn);
+    if(hangWarn) parts.push(hangWarn);
+    if(!tacticWarn && queenWarn) parts.push(queenWarn);
+    if(devTip) parts.push('🎓 ' + devTip);
+
+    if(parts.length){
+      notice(parts.slice(0,3).join(' '));
+    }
+  }catch(_e){ /* keep silent */ }
+}
+
 // Render
 function render(){
   boardEl.innerHTML='';
@@ -789,6 +861,104 @@ function pickFromBook(){
 
 
 // Worker engine (used for hint + AI)
+
+
+// ===============================
+// Simple learning engine (used at low Elo)
+// File required next to index.html:
+// - simple-engine-worker.js
+// This engine is used only when the Elo slider is set below SIMPLE_ENGINE_SWITCH_ELO.
+// ===============================
+const SIMPLE_ENGINE_WORKER_URL = 'simple-engine-worker.js';
+const SIMPLE_ENGINE_SWITCH_ELO = 600; // change to 1000 if you want the simple engine up to 1000 Elo
+let simpleWorker = null;
+let simpleSeq = 0;
+let simpleSearching = false;
+let pendingHintSimple = false;
+let awaitingAIMoveSimple = false;
+let simpleFallbackTimer = null;
+
+function getDisplayElo(){
+  if(!strengthSliderEl) return 0;
+  const raw = parseInt(strengthSliderEl.value,10)||0;
+  if(raw<=0) return 0; // unlimited
+  // displayEloForRaw is defined later in the Stockfish section; fall back to raw if not yet.
+  try{ return (typeof displayEloForRaw==='function' ? displayEloForRaw(raw) : raw) || raw; }catch(_e){ return raw; }
+}
+
+function shouldUseSimpleEngine(){
+  const elo = getDisplayElo();
+  return elo>0 && elo < SIMPLE_ENGINE_SWITCH_ELO;
+}
+
+function initSimpleWorker(){
+  if(simpleWorker) return;
+  simpleWorker = new Worker(SIMPLE_ENGINE_WORKER_URL);
+  simpleWorker.onerror = (e)=>{
+    notice('⚠️ Simple engine: ' + ((e && e.message) ? e.message : 'Worker error'));
+    simpleStopSearch();
+  };
+  simpleWorker.onmessage = (e)=>{
+    const msg = e.data || {};
+    if(msg.type !== 'result' || msg.seq !== simpleSeq) return;
+    simpleSearching=false;
+    pendingHintSimple=false;
+    awaitingAIMoveSimple=false;
+    if(thinkingEl) thinkingEl.style.display='none';
+    if(stopBtn) stopBtn.style.display='none';
+    if(simpleFallbackTimer){ clearTimeout(simpleFallbackTimer); simpleFallbackTimer=null; }
+    const mv = msg.move;
+    if(!mv) return;
+    if(pendingHintSimple){
+      // handled above, but keep safe
+      return;
+    }
+    if(msg.forHint){
+      hintMove={sr:mv.sr,sc:mv.sc,er:mv.er,ec:mv.ec,source:'simple'};
+      notice('✨ Hint (learning engine): '+sqLabel(mv.sr,mv.sc)+' → '+sqLabel(mv.er,mv.ec));
+      render();
+      return;
+    }
+    if(awaitingAIMoveSimple){
+      withMoveSource('engine', ()=> applyMove(mv.sr,mv.sc,mv.er,mv.ec,mv.promo||null));
+      return;
+    }
+    // default: treat as AI move
+    withMoveSource('engine', ()=> applyMove(mv.sr,mv.sc,mv.er,mv.ec,mv.promo||null));
+  };
+}
+
+function simpleStopSearch(){
+  try{ if(simpleWorker) simpleWorker.postMessage({type:'stop'}); }catch(_e){}
+  simpleSearching=false;
+  pendingHintSimple=false;
+  awaitingAIMoveSimple=false;
+  if(simpleFallbackTimer){ clearTimeout(simpleFallbackTimer); simpleFallbackTimer=null; }
+}
+
+function requestSimpleBestMove({forHint=false}={}){
+  if(gameOver) return;
+  initSimpleWorker();
+  simpleStopSearch();
+  simpleSearching=true;
+  pendingHintSimple=!!forHint;
+  awaitingAIMoveSimple=!forHint;
+  simpleSeq++;
+  if(thinkingEl) thinkingEl.style.display='inline';
+  if(stopBtn) stopBtn.style.display='inline';
+  const elo = getDisplayElo() || 600;
+  simpleFallbackTimer=setTimeout(()=>{
+    if(!simpleSearching) return;
+    notice('Learning engine is taking longer than expected — press Stop.');
+    simpleStopSearch();
+  }, 2500);
+  simpleWorker.postMessage({
+    type:'search',
+    seq: simpleSeq,
+    elo,
+    state: { board, turn, enPassant, castling }
+  });
+}
 // ===============================
 // Stockfish 16 (single-threaded) — OFFLINE + Elo slider
 // Required files next to index.html:
@@ -828,8 +998,9 @@ function sfStopSearch(){
 }
 
 function stopSearch(){
-  // compatibility
+  // stop any engine search (Stockfish or learning engine)
   sfStopSearch();
+  simpleStopSearch();
 }
 
 function sfNoticeError(msg){
@@ -1021,7 +1192,8 @@ function requestStockfishBestMove({forHint=false}={}){
   }
 }
 
-// Hint button (book first, then Stockfish)
+
+// Hint button (book first, then engine)
 hintBtn.addEventListener('click', ()=>{
   if(gameOver) return;
   const bm=pickFromBook();
@@ -1031,7 +1203,46 @@ hintBtn.addEventListener('click', ()=>{
     render();
     return;
   }
+
+  if(shouldUseSimpleEngine()){
+    // route hint to learning engine
+    initSimpleWorker();
+    simpleSearching=true;
+    simpleSeq++;
+    if(thinkingEl) thinkingEl.style.display='inline';
+    if(stopBtn) stopBtn.style.display='inline';
+    const elo = getDisplayElo() || 600;
+    // mark forHint using payload flag; handled in worker response
+    simpleWorker.postMessage({type:'search', seq:simpleSeq, elo, state:{board,turn,enPassant,castling}});
+    // local: store hint intent
+    const localSeq = simpleSeq;
+    const prevHandler = simpleWorker.onmessage;
+    // wrap once to interpret as hint
+    simpleWorker.onmessage = (e)=>{
+      const msg=e.data||{};
+      if(msg.type==='result' && msg.seq===localSeq){
+        simpleSearching=false;
+        if(thinkingEl) thinkingEl.style.display='none';
+        if(stopBtn) stopBtn.style.display='none';
+        const mv=msg.move;
+        if(mv){
+          hintMove={sr:mv.sr,sc:mv.sc,er:mv.er,ec:mv.ec,source:'simple'};
+          notice('✨ Hint (learning engine): '+sqLabel(mv.sr,mv.sc)+' → '+sqLabel(mv.er,mv.ec));
+          render();
+        }
+        // restore handler
+        simpleWorker.onmessage = prevHandler;
+        return;
+      }
+      // pass through
+      prevHandler(e);
+    };
+    return;
+  }
+
   requestStockfishBestMove({forHint:true});
+});
+
 });
 
 clearHintBtn.addEventListener('click', ()=>{ hintMove=null; notice(''); render(); });
@@ -1040,34 +1251,24 @@ clearHintBtn.addEventListener('click', ()=>{ hintMove=null; notice(''); render()
 function maybeAiMove(){
   if(globalThis.__TRAINING_ACTIVE__) return;
   if(!vsCompEl.checked || gameOver) return;
+  const human=humanSideEl.value;
+  const aiColor=(human==='white')?'black':'white';
+  if(turn!==aiColor) return;
+  if(currentPly!==timeline.length-1) return;
 
-  const human = humanSideEl.value;
-  const aiColor = human === 'white' ? 'black' : 'white';
-  if(turn !== aiColor) return;
-  if(currentPly !== timeline.length-1) return;
+  const bm=pickFromBook();
+  if(bm){ withMoveSource('engine', ()=> applyMove(bm.sr,bm.sc,bm.er,bm.ec)); return; }
 
-  const bm = pickFromBook();
-  if(bm){
-    withMoveSource('engine', () =>
-      applyMove(bm.sr, bm.sc, bm.er, bm.ec)
-    );
+  if(shouldUseSimpleEngine()){
+    requestSimpleBestMove({forHint:false});
     return;
   }
 
-  if(isLowElo()){
-    initSimpleEngine();
-    awaitingSimpleMove = true;
-    simpleEngine.postMessage({
-      type:'search',
-      state:{ board, turn }
-    });
-  } else {
-    requestStockfishBestMove({ forHint:false });
-  }
+  requestStockfishBestMove({forHint:false});
 }
 
-
 vsCompEl.addEventListener('change', ()=> maybeAiMove());
+
 
 
 // ===============================
@@ -1126,22 +1327,7 @@ async function loadJsonFromUrl(url){
   return await res.json();
 }
 
-// === Simple Engine (Elo < 600) ===
-let simpleEngine = null;
-let awaitingSimpleMove = false;
 
-function initSimpleEngine(){
-  if(simpleEngine) return;
-  simpleEngine = new Worker('simple-engine-worker.js');
-  simpleEngine.onmessage = (e)=>{
-    const m = e.data.move;
-    if(!m) return;
-    awaitingSimpleMove = false;
-    withMoveSource('engine', () =>
-      applyMove(m.sr, m.sc, m.er, m.ec)
-    );
-  };
-}
 
 // Multi-pack helpers (manifest + merge)
 async function fetchJson(url){
@@ -1426,9 +1612,11 @@ if(nextTacticBtn) nextTacticBtn.addEventListener('click', nextTactic);
     const wrapped = function(sr,sc,er,ec,promo){
       const uci = uciFromCoords(sr,sc,er,ec,promo);
       const source = (typeof MOVE_SOURCE==='string') ? MOVE_SOURCE : 'user';
+      const before = snapshot();
       const res = orig(sr,sc,er,ec,promo);
       if(source==='user'){
         trainingOnUserMove(uci);
+        if(!globalThis.__TRAINING_ACTIVE__) lessonFeedback({sr,sc,er,ec,promo,uci}, before);
       }
       return res;
     };
