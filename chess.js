@@ -837,15 +837,12 @@ if(selected){
   return;
 }
 
-    selected=null; render();
-    return;
-  }
 
   if(p!=='.' && (isWhite(p)?'white':'black')===turn){
     selected={r,c};
     render();
   }
-}
+
 
 // Opening book
 const BOOK_LINES=[
