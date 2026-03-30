@@ -1729,6 +1729,8 @@ function trainingOnUserMove(uci){
         hintMove = {sr:m.sr,sc:m.sc,er:m.er,ec:m.ec,source:'trainer'};
         render();
       }catch(_e){}
+      
+
       return;
     }
     // correct
@@ -1748,7 +1750,6 @@ function trainingOnUserMove(uci){
      
 trainingActive=false;
 tacticState=null;
-clearCandidates();
 setTrainingStatus('Puzzle solved ✅');
  return;
     }
