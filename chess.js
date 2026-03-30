@@ -1705,4 +1705,3 @@ function trainingOnUserMove(uci){
 startNewGame();
 })();
 
-
