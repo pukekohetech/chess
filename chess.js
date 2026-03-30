@@ -939,8 +939,10 @@ function pickFromBook(){
 // - simple-engine-worker.js
 // This engine is used only when the Elo slider is set below SIMPLE_ENGINE_SWITCH_ELO.
 // ===============================
+
 const SIMPLE_ENGINE_WORKER_URL = 'simple-engine-worker.js';
-const SIMPLE_ENGINE_SWITCH_ELO = 600; // change to 1000 if you want the simple engine up to 1000 Elo
+const ENGINE_BEGINNER_MAX_ELO = 699;
+const ENGINE_CLUB_MAX_ELO = 1299;
 let simpleWorker = null;
 let simpleSeq = 0;
 let simpleSearching = false;
@@ -952,13 +954,20 @@ function getDisplayElo(){
   if(!strengthSliderEl) return 0;
   const raw = parseInt(strengthSliderEl.value,10)||0;
   if(raw<=0) return 0; // unlimited
-  // displayEloForRaw is defined later in the Stockfish section; fall back to raw if not yet.
   try{ return (typeof displayEloForRaw==='function' ? displayEloForRaw(raw) : raw) || raw; }catch(_e){ return raw; }
 }
 
-function shouldUseSimpleEngine(){
+function getEngineTier(){
   const elo = getDisplayElo();
-  return elo>0 && elo < SIMPLE_ENGINE_SWITCH_ELO;
+  if(elo <= 0) return { key:'stockfish', label:'Stockfish', help:'Full engine strength' };
+  if(elo <= ENGINE_BEGINNER_MAX_ELO) return { key:'beginner', label:'Beginner engine', help:'Forgiving, human-like, good for new players' };
+  if(elo <= ENGINE_CLUB_MAX_ELO) return { key:'club', label:'Club engine', help:'More solid, fewer blunders, still beatable' };
+  return { key:'stockfish', label:'Stockfish', help:'Advanced engine with Elo limiting' };
+}
+
+function usesSimpleEngineTier(){
+  const tier = getEngineTier();
+  return tier.key === 'beginner' || tier.key === 'club';
 }
 
 function initSimpleWorker(){
@@ -971,29 +980,32 @@ function initSimpleWorker(){
   simpleWorker.onmessage = (e)=>{
     const msg = e.data || {};
     if(msg.type !== 'result' || msg.seq !== simpleSeq) return;
+
+    const wasHint = pendingHintSimple;
+    const wasAiMove = awaitingAIMoveSimple;
+
     simpleSearching=false;
     pendingHintSimple=false;
     awaitingAIMoveSimple=false;
     if(thinkingEl) thinkingEl.style.display='none';
     if(stopBtn) stopBtn.style.display='none';
     if(simpleFallbackTimer){ clearTimeout(simpleFallbackTimer); simpleFallbackTimer=null; }
+
     const mv = msg.move;
     if(!mv) return;
-    if(pendingHintSimple){
-      // handled above, but keep safe
-      return;
-    }
-    if(msg.forHint){
+
+    if(wasHint){
       hintMove={sr:mv.sr,sc:mv.sc,er:mv.er,ec:mv.ec,source:'simple'};
       notice('✨ Hint (learning engine): '+sqLabel(mv.sr,mv.sc)+' → '+sqLabel(mv.er,mv.ec));
       render();
       return;
     }
-    if(awaitingAIMoveSimple){
+
+    if(wasAiMove){
       withMoveSource('engine', ()=> applyMove(mv.sr,mv.sc,mv.er,mv.ec,mv.promo||null));
       return;
     }
-    // default: treat as AI move
+
     withMoveSource('engine', ()=> applyMove(mv.sr,mv.sc,mv.er,mv.ec,mv.promo||null));
   };
 }
@@ -1006,7 +1018,7 @@ function simpleStopSearch(){
   if(simpleFallbackTimer){ clearTimeout(simpleFallbackTimer); simpleFallbackTimer=null; }
 }
 
-function requestSimpleBestMove({forHint=false}={}){
+function requestSimpleBestMove({forHint=false, tier='beginner'}={}){
   if(gameOver) return;
   initSimpleWorker();
   simpleStopSearch();
@@ -1026,9 +1038,11 @@ function requestSimpleBestMove({forHint=false}={}){
     type:'search',
     seq: simpleSeq,
     elo,
+    tier,
     state: { board, turn, enPassant, castling }
   });
 }
+
 // ===============================
 // Stockfish 16 (single-threaded) — OFFLINE + Elo slider
 // Required files next to index.html:
@@ -1137,46 +1151,68 @@ function skillFromDisplayElo(elo){
   return clamp(Math.round(t * 20), 0, 20);
 }
 
+
 function updateStrengthReadoutOnly(){
   if(!strengthSliderEl) return;
+
   const raw = parseInt(strengthSliderEl.value, 10) || 0;
+  const tier = getEngineTier();
+
   if(raw <= 0){
-    setStrengthReadout('Unlimited');
+    setStrengthReadout('Unlimited — Stockfish');
+    if(strengthHelpEl) {
+      strengthHelpEl.textContent = 'Full Stockfish strength. Hints use Stockfish.';
+    }
     return;
   }
+
   const elo = displayEloForRaw(raw);
-  setStrengthReadout('Elo ' + elo);
+  setStrengthReadout(`Elo ${elo} — ${tier.label}`);
+
+  if(strengthHelpEl) {
+    strengthHelpEl.textContent = tier.help + '. Hints use Stockfish when available.';
+  }
 }
+
+
 
 function applyStrengthFromSlider(){
   if(!strengthSliderEl) return;
+
   const raw = parseInt(strengthSliderEl.value, 10) || 0;
+  const tier = getEngineTier();
+
   try{ store.set('chess_strength_slider', String(raw)); }catch(_e){}
 
+  updateStrengthReadoutOnly();
+
   if(raw <= 0){
-    setStrengthReadout('Unlimited');
-    if(strengthHelpEl) strengthHelpEl.textContent = 'Unlimited: full strength (Time/Depth settings apply).';
     sfSend('setoption name UCI_LimitStrength value false');
     sfSend('setoption name Skill Level value 20');
     return;
   }
 
   const elo = displayEloForRaw(raw);
-  setStrengthReadout('Elo ' + elo);
+
+  if(tier.key === 'beginner' || tier.key === 'club'){
+    const hintTarget = Math.max(1400, elo + 500);
+    sfSend('setoption name UCI_LimitStrength value true');
+    sfSend('setoption name UCI_Elo value ' + clamp(hintTarget, UCI_ELO_MIN, UCI_ELO_MAX));
+    return;
+  }
 
   if(elo < UCI_ELO_MIN){
     const skill = skillFromDisplayElo(elo);
-    if(strengthHelpEl) strengthHelpEl.textContent = 'Approx Elo (Skill Level ' + skill + '/20 internally).';
     sfSend('setoption name UCI_LimitStrength value false');
     sfSend('setoption name Skill Level value ' + skill);
     return;
   }
 
   const target = clamp(elo, UCI_ELO_MIN, UCI_ELO_MAX);
-  if(strengthHelpEl) strengthHelpEl.textContent = 'Elo limiter active.';
   sfSend('setoption name UCI_LimitStrength value true');
   sfSend('setoption name UCI_Elo value ' + target);
 }
+
 
 (function initStrengthUi(){
   if(!strengthSliderEl) return;
@@ -1264,6 +1300,7 @@ function requestStockfishBestMove({forHint=false}={}){
 
 
 // Hint button (book first, then engine)
+
 hintBtn.addEventListener('click', ()=>{
   if(gameOver) return;
   const bm=pickFromBook();
@@ -1274,48 +1311,23 @@ hintBtn.addEventListener('click', ()=>{
     return;
   }
 
-  if(shouldUseSimpleEngine()){
-    // route hint to learning engine
-    initSimpleWorker();
-    simpleSearching=true;
-    simpleSeq++;
-    if(thinkingEl) thinkingEl.style.display='inline';
-    if(stopBtn) stopBtn.style.display='inline';
-    const elo = getDisplayElo() || 600;
-    // mark forHint using payload flag; handled in worker response
-    simpleWorker.postMessage({type:'search', seq:simpleSeq, elo, state:{board,turn,enPassant,castling}});
-    // local: store hint intent
-    const localSeq = simpleSeq;
-    const prevHandler = simpleWorker.onmessage;
-    // wrap once to interpret as hint
-    simpleWorker.onmessage = (e)=>{
-      const msg=e.data||{};
-      if(msg.type==='result' && msg.seq===localSeq){
-        simpleSearching=false;
-        if(thinkingEl) thinkingEl.style.display='none';
-        if(stopBtn) stopBtn.style.display='none';
-        const mv=msg.move;
-        if(mv){
-          hintMove={sr:mv.sr,sc:mv.sc,er:mv.er,ec:mv.ec,source:'simple'};
-          notice('✨ Hint (learning engine): '+sqLabel(mv.sr,mv.sc)+' → '+sqLabel(mv.er,mv.ec));
-          render();
-        }
-        // restore handler
-        simpleWorker.onmessage = prevHandler;
-        return;
-      }
-      // pass through
-      prevHandler(e);
-    };
-    return;
+  try{
+    requestStockfishBestMove({forHint:true});
+  }catch(_e){
+    const tier = getEngineTier();
+    if(tier.key === 'beginner' || tier.key === 'club'){
+      requestSimpleBestMove({forHint:true, tier:tier.key});
+    }else{
+      notice('⚠️ Stockfish hint unavailable.');
+    }
   }
-
-  requestStockfishBestMove({forHint:true});
 });
 
 
 
+
 clearHintBtn.addEventListener('click', ()=>{ hintMove=null; notice(''); render(); });
+
 
 
 function maybeAiMove(){
@@ -1327,15 +1339,20 @@ function maybeAiMove(){
   if(currentPly!==timeline.length-1) return;
 
   const bm=pickFromBook();
-  if(bm){ withMoveSource('engine', ()=> applyMove(bm.sr,bm.sc,bm.er,bm.ec)); return; }
+  if(bm){
+    withMoveSource('engine', ()=> applyMove(bm.sr,bm.sc,bm.er,bm.ec));
+    return;
+  }
 
-  if(shouldUseSimpleEngine()){
-    requestSimpleBestMove({forHint:false});
+  const tier = getEngineTier();
+  if(tier.key === 'beginner' || tier.key === 'club'){
+    requestSimpleBestMove({forHint:false, tier:tier.key});
     return;
   }
 
   requestStockfishBestMove({forHint:false});
 }
+
 
 vsCompEl.addEventListener('change', ()=> maybeAiMove());
 
