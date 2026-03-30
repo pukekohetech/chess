@@ -1697,7 +1697,7 @@ function trainingOnUserMove(uci){
     tacticState=null;
     setTrainingStatus('Puzzle solved ✅');
   }
-}
+
 
 
 
