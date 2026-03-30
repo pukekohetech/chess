@@ -1727,6 +1727,10 @@ function trainingOnUserMove(uci){
         hintMove = {sr:m.sr,sc:m.sc,er:m.er,ec:m.ec,source:'trainer'};
         render();
       }catch(_e){}
+      
+tacticState.attempts++;
+clearCandidates();
+
       return;
     }
     // correct
@@ -1743,7 +1747,12 @@ function trainingOnUserMove(uci){
   if(tacticState){
     const expected = tacticState.solution[tacticState.idx];
     if(!expected){
-      trainingActive=false; tacticState=null; setTrainingStatus('Puzzle solved ✅'); return;
+     
+trainingActive=false;
+tacticState=null;
+clearCandidates();
+setTrainingStatus('Puzzle solved ✅');
+ return;
     }
     if(uci !== expected){
       setTrainingStatus(`❌ Try again. Expected ${expected}.`);
