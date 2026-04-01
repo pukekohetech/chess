@@ -281,12 +281,10 @@ function evalCp(s){
 
 function depthForTier(elo, tier){
   if (tier === 'beginner') {
-    if (elo < 550) return 2;
-    return 3;
+    return elo < 550 ? 2 : 3;
   }
   if (tier === 'club') {
-    if (elo < 900) return 4;
-    return 5;
+    return elo < 950 ? 3 : 4;
   }
   return 4;
 }
@@ -301,14 +299,24 @@ function ratesForTier(elo, tier){
     };
   }
 
-  if (tier === 'club') {
-    return {
-      blunder: 0.05,
-      greedyCapture: 0.18,
-      queenHang: 0.00,
-      noise: 22
-    };
-  }
+ if (tier === 'club') {
+  const t = Math.max(0, Math.min(1, (elo - 700) / 500)); // 700..1200
+  return {
+    blunder: 0.10 - (0.06 * t),
+    greedyCapture: 0.22 - (0.08 * t),
+    queenHang: 0.00,
+    noise: 34 - (16 * t)
+  };
+}
+
+  return {
+    blunder: 0.08,
+    greedyCapture: 0.12,
+    queenHang: 0.00,
+    noise: 18
+  };
+}
+
 
   return {
     blunder: 0.08,
