@@ -35,84 +35,89 @@
   </div>
 
   <div id="app">
-    <div id="left">
-      <div class="panel">
-        <div class="topbar">
-          <label class="compactCtrl">
-            <input type="checkbox" id="vsComp">
-            <span>Play vs Computer</span>
-          </label>
+   <div id="left">
+  <h2 id="status">Turn: White</h2>
+  <div class="board" id="board"></div>
 
-          <label class="compactCtrl">
-            <span>You play</span>
-            <select id="humanSide">
-              <option value="white">White</option>
-              <option value="black">Black</option>
-            </select>
-          </label>
+  <div class="below-board">
+    <div class="panel">
+      <div class="topbar">
+        <label class="compactCtrl">
+          <input type="checkbox" id="vsComp">
+          <span>Play vs Computer</span>
+        </label>
 
-          <div class="topbar-actions">
-            <button id="newBtn">New Game</button>
-            <button id="flipBtn">Flip</button>
-            <button id="undoBtn">Undo</button>
-            <button id="redoBtn">Redo</button>
-            <button id="hintBtn" title="Show a best-move hint">Hint ✨</button>
-            <button id="clearHintBtn" title="Clear hint">Clear</button>
-            <button id="stopBtn" style="display:none;">Stop</button>
-          </div>
+        <label class="compactCtrl">
+          <span>You play</span>
+          <select id="humanSide">
+            <option value="white">White</option>
+            <option value="black">Black</option>
+          </select>
+        </label>
+
+        <div class="topbar-actions">
+          <button id="newBtn">New Game</button>
+          <button id="flipBtn">Flip</button>
+          <button id="undoBtn">Undo</button>
+          <button id="redoBtn">Redo</button>
+          <button id="hintBtn" title="Show a best-move hint">Hint ✨</button>
+          <button id="clearHintBtn" title="Clear hint">Clear</button>
+          <button id="stopBtn" style="display:none;">Stop</button>
         </div>
       </div>
+    </div>
 
-      <div class="panel">
-        <div class="strength-card" id="strengthCard">
-          <div class="strength-top">
-            <div class="strength-title">Engine strength</div>
-            <div class="strength-pill" id="strengthReadout">Unlimited</div>
-          </div>
+    <div class="panel">
+      <div class="strength-card" id="strengthCard">
+        <div class="strength-top">
+          <div class="strength-title">Engine strength</div>
+          <div class="strength-pill" id="strengthReadout">Unlimited</div>
+        </div>
 
-          <div class="strength-sub">
-            400–699 Beginner • 700–1200 Club • 1201+ Stockfish
-          </div>
+        <div class="strength-sub">
+          400–699 Beginner • 700–1200 Club • 1201+ Stockfish
+        </div>
 
-          <div class="strength-controls">
-            <input
-              type="range"
-              id="strengthSlider"
-              min="0"
-              max="3190"
-              step="25"
-              value="0"
-              list="strengthTicks"
-              aria-label="Engine strength"
-            />
+        <div class="strength-controls">
+          <input
+            type="range"
+            id="strengthSlider"
+            min="0"
+            max="3190"
+            step="25"
+            value="0"
+            list="strengthTicks"
+            aria-label="Engine strength"
+          />
 
-            <datalist id="strengthTicks">
-              <option value="0" label="∞"></option>
-              <option value="400" label="400"></option>
-              <option value="700" label="700"></option>
-              <option value="1200" label="1200"></option>
-              <option value="1600" label="1600"></option>
-              <option value="2000" label="2000"></option>
-              <option value="2600" label="2600"></option>
-              <option value="3190" label="3190"></option>
-            </datalist>
+          <datalist id="strengthTicks">
+            <option value="0" label="∞"></option>
+            <option value="400" label="400"></option>
+            <option value="700" label="700"></option>
+            <option value="1200" label="1200"></option>
+            <option value="1600" label="1600"></option>
+            <option value="2000" label="2000"></option>
+            <option value="2600" label="2600"></option>
+            <option value="3190" label="3190"></option>
+          </datalist>
 
-            <div class="strength-actions">
-              <div class="strength-scale">
-                <span>∞</span>
-                <span>700</span>
-                <span>1200</span>
-                <span>2000</span>
-                <span>3190</span>
-              </div>
-              <button class="btn-mini" id="strengthReset" type="button">Reset</button>
+          <div class="strength-actions">
+            <div class="strength-scale">
+              <span>∞</span>
+              <span>700</span>
+              <span>1200</span>
+              <span>2000</span>
+              <span>3190</span>
             </div>
-
-            <div class="strength-help" id="strengthHelp"></div>
+            <button class="btn-mini" id="strengthReset" type="button">Reset</button>
           </div>
+
+          <div class="strength-help" id="strengthHelp"></div>
         </div>
       </div>
-
+    </div>
+  </div>
+</div>
       <h2 id="status">Turn: White</h2>
       <div class="board" id="board"></div>
     </div>
