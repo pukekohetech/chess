@@ -299,32 +299,27 @@ function ratesForTier(elo, tier){
     };
   }
 
- if (tier === 'club') {
-  const t = Math.max(0, Math.min(1, (elo - 700) / 500)); // 700..1200
+if (tier === 'club') {
+  // clamp Elo into expected range just in case
+  const e = Math.max(699, Math.min(1200, elo));
+  const t = (e - 699) / 500; // 0 → 1
+
   return {
-    blunder: 0.10 - (0.06 * t),
-    greedyCapture: 0.22 - (0.08 * t),
+    blunder: 0.10 - (0.06 * t),        // 0.10 → 0.04
+    greedyCapture: 0.22 - (0.08 * t),  // 0.22 → 0.14
     queenHang: 0.00,
-    noise: 34 - (16 * t)
+    noise: 34 - (16 * t)               // 34 → 18
   };
 }
 
-  return {
-    blunder: 0.08,
-    greedyCapture: 0.12,
-    queenHang: 0.00,
-    noise: 18
-  };
-}
+return {
+  blunder: 0.08,
+  greedyCapture: 0.12,
+  queenHang: 0.00,
+  noise: 18
+};
 
 
-  return {
-    blunder: 0.08,
-    greedyCapture: 0.12,
-    queenHang: 0.00,
-    noise: 18
-  };
-}
 
 function minimax(s, depth, alpha, beta){
   if (stopped) return {score: evalCp(s)};
