@@ -1,41 +1,135 @@
 {
-  "version": 1,
+  "version": 2,
   "tactics": [
     {
       "id": "T001",
       "title": "Mate in 2",
       "fen": "q3k1nr/1pp1nQpp/3p4/1P2p3/4P3/B1PP1b2/B5PP/5K2 b k - 0 17",
       "sideToMove": "b",
-      "solutionUci": [
-        "e8d7",
-        "a2e6",
-        "d7d8",
-        "f7f8"
-      ],
-      "themes": [
-        "mate",
-        "mateIn2",
-        "short"
-      ],
-      "rating": 900
+      "solutionUci": ["e8d7", "a2e6", "d7d8", "f7f8"],
+      "themes": ["mate", "mateIn2", "short"],
+      "gamePhase": "middlegame",
+      "difficultyLabel": "Beginner",
+      "motifCount": 1,
+      "rating": 900,
+      "description": "Force mate by eliminating escape squares."
     },
     {
       "id": "T002",
-      "title": "Fork",
+      "title": "Knight Fork on King and Queen",
       "fen": "r3r1k1/p4ppp/2p2n2/1p6/3P1qb1/2NQR3/PPB2PP1/R1B3K1 w - - 5 18",
       "sideToMove": "w",
-      "solutionUci": [
-        "e3g3",
-        "e8e1",
-        "g1h2",
-        "e1c1"
-      ],
-      "themes": [
-        "fork",
-        "tactic",
-        "attack"
-      ],
-      "rating": 1200
+      "solutionUci": ["e3g3", "e8e1", "g1h2", "e1c1"],
+      "themes": ["fork", "tactic", "attack"],
+      "gamePhase": "middlegame",
+      "difficultyLabel": "Intermediate",
+      "motifCount": 1,
+      "rating": 1200,
+      "description": "Exploit overloaded pieces with a decisive fork."
+    },
+    {
+      "id": "T003",
+      "title": "Back Rank Mate",
+      "fen": "6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
+      "sideToMove": "w",
+      "solutionUci": ["e1e8"],
+      "themes": ["mate", "backRank", "rook"],
+      "gamePhase": "endgame",
+      "difficultyLabel": "Beginner",
+      "motifCount": 1,
+      "rating": 800,
+      "description": "Exploit unprotected back rank with a direct rook entry."
+    },
+    {
+      "id": "T004",
+      "title": "Skewer on the e-file",
+      "fen": "4r1k1/pp3ppp/2p1bn2/8/2B5/2N1Q3/PPP2PPP/3RR1K1 w - - 2 14",
+      "sideToMove": "w",
+      "solutionUci": ["e3e6", "f7e6", "d1d8"],
+      "themes": ["skewer", "discoveredAttack"],
+      "gamePhase": "middlegame",
+      "difficultyLabel": "Intermediate",
+      "motifCount": 2,
+      "rating": 1300,
+      "description": "Skewer through the king to win decisive material."
+    },
+    {
+      "id": "T005",
+      "title": "Queen Sacrifice",
+      "fen": "r1b2rk1/ppp2ppp/2n5/3np3/2B1P3/2NP1Q2/PPP2PPP/R1B2RK1 w - - 2 11",
+      "sideToMove": "w",
+      "solutionUci": ["f3f7", "f8f7", "c4d5"],
+      "themes": ["sacrifice", "kingAttack"],
+      "gamePhase": "middlegame",
+      "difficultyLabel": "Advanced",
+      "motifCount": 2,
+      "rating": 1600,
+      "description": "Clear the king’s defenders with a forcing sacrifice."
+    },
+    {
+      "id": "T006",
+      "title": "Deflection of Defender",
+      "fen": "r2q1rk1/ppp2ppp/2nb4/3Np3/2B1P3/3B4/PPP2PPP/R1BQ1RK1 w - - 4 10",
+      "sideToMove": "w",
+      "solutionUci": ["d3h7", "g8h7", "d5f6"],
+      "themes": ["deflection", "tactic"],
+      "gamePhase": "middlegame",
+      "difficultyLabel": "Advanced",
+      "motifCount": 2,
+      "rating": 1550,
+      "description": "Remove a key defender to expose the king."
+    },
+    {
+      "id": "T007",
+      "title": "Discovered Attack",
+      "fen": "r1bqk2r/ppp2ppp/2n5/3np3/2B1P3/5N2/PPP2PPP/RNBQ1RK1 w kq - 2 8",
+      "sideToMove": "w",
+      "solutionUci": ["c4d5", "d8d5", "f3e5"],
+      "themes": ["discoveredAttack", "tempo"],
+      "gamePhase": "opening",
+      "difficultyLabel": "Intermediate",
+      "motifCount": 2,
+      "rating": 1250,
+      "description": "Use a discovered attack to gain material with tempo."
+    },
+    {
+      "id": "T008",
+      "title": "Smothered Mate",
+      "fen": "6rk/5ppp/8/8/3N4/5Q2/5PPP/6K1 w - - 0 1",
+      "sideToMove": "w",
+      "solutionUci": ["f3f7", "g8f7", "d4f5"],
+      "themes": ["mate", "smothered", "knight"],
+      "gamePhase": "middlegame",
+      "difficultyLabel": "Advanced",
+      "motifCount": 2,
+      "rating": 1700,
+      "description": "Force a classic smothered mate using knight geometry."
+    },
+    {
+      "id": "T009",
+      "title": "Pin and Win",
+      "fen": "r1bq1rk1/ppp2ppp/2nb1n2/8/2BP4/2N2N2/PPP2PPP/R1BQ1RK1 w - - 4 9",
+      "sideToMove": "w",
+      "solutionUci": ["c4f7"],
+      "themes": ["pin", "materialWin"],
+      "gamePhase": "opening",
+      "difficultyLabel": "Beginner",
+      "motifCount": 1,
+      "rating": 850,
+      "description": "Exploit a pinned piece to win material immediately."
+    },
+    {
+      "id": "T010",
+      "title": "Endgame Promotion Tactic",
+      "fen": "8/4k3/6P1/8/8/8/4K3/8 w - - 0 1",
+      "sideToMove": "w",
+      "solutionUci": ["g6g7", "e7f7", "g7g8q"],
+      "themes": ["promotion", "endgame"],
+      "gamePhase": "endgame",
+      "difficultyLabel": "Beginner",
+      "motifCount": 1,
+      "rating": 700,
+      "description": "Calculate pawn promotion with precise tempo."
     }
   ]
 }
