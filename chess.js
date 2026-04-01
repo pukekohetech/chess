@@ -1375,7 +1375,7 @@ let tacticState = null;
 // ===============================
 // Candidate-move training (TACTICS ONLY)
 // ===============================
-const REQUIRED_CANDIDATES = 2;
+const REQUIRED_CANDIDATES = 0;// was 2
 
 
 
