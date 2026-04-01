@@ -1,14 +1,14 @@
 {
-  "version": 1,
+  "version": 2,
   "openings": [
     {
-      "id": "italian_giuoco_piano",
-      "name": "Italian Game \u2014 Giuoco Piano",
+      "id": "italian_giuoco_piano_modern",
+      "name": "Italian Game — Giuoco Piano (Modern Main Line)",
       "side": "white",
       "startFen": "startpos",
       "lines": [
         {
-          "name": "Main line",
+          "name": "Modern main line",
           "movesUci": [
             "e2e4",
             "e7e5",
@@ -21,11 +21,44 @@
             "d2d4",
             "e5d4",
             "c3d4",
-            "c5b4"
+            "f8b4",
+            "b1c3",
+            "f6e4",
+            "e1g1",
+            "b4c3",
+            "d4d5",
+            "e4e5",
+            "d1d4"
           ]
-        },
+        }
+      ],
+      "ideas": [
+        "Control the center with c3 and d4",
+        "Rapid development and early castling",
+        "Exploit central tension and weak squares"
+      ],
+      "traps": [
+        "After Bb4+ Nc3 Nxe4, d5! forks pieces and opens the center",
+        "Greedy pawn holding after d4 leads to explosive development advantage",
+        "Early castling by Black allows Qb3 double attack on f7 and b7"
+      ],
+      "tactics": [
+        "d5 pawn break",
+        "Sacrifice on f7",
+        "Pin on e-file with Re1",
+        "Discovered attacks via Nc3–d5"
+      ],
+      "tags": ["open", "italian", "classical"]
+    },
+
+    {
+      "id": "two_knights_ng5",
+      "name": "Two Knights Defense — Ng5 Attack",
+      "side": "white",
+      "startFen": "startpos",
+      "lines": [
         {
-          "name": "Two Knights Defence",
+          "name": "Main attacking line",
           "movesUci": [
             "e2e4",
             "e7e5",
@@ -33,31 +66,51 @@
             "b8c6",
             "f1c4",
             "g8f6",
-            "d2d4",
-            "e5d4",
             "f3g5",
-            "d7d5"
+            "d7d5",
+            "e4d5",
+            "c6a5",
+            "c4b5",
+            "c7c6",
+            "d5c6",
+            "b7c6",
+            "c4e2",
+            "h7h6",
+            "g5f3",
+            "e5e4",
+            "f3e5",
+            "f8d6",
+            "d2d4"
           ]
         }
       ],
       "ideas": [
-        "Develop quickly",
-        "Castle early",
-        "Prepare d4 break"
+        "Immediate pressure on f7",
+        "Force defensive accuracy",
+        "Create early tactical chaos"
       ],
-      "tags": [
-        "open",
-        "classical"
-      ]
+      "traps": [
+        "Nxd5?? loses to Nxf7 winning material",
+        "Ignoring Ng5 allows Bxf7+",
+        "Poor handling of c6 leads to central collapse"
+      ],
+      "tactics": [
+        "Knight fork on f7",
+        "Bxf7+ sacrifice",
+        "e-file attack after Re1",
+        "Central break with d4"
+      ],
+      "tags": ["open", "sharp", "tactical"]
     },
+
     {
-      "id": "queens_gambit",
-      "name": "Queen's Gambit",
+      "id": "queens_gambit_declined_orthodox",
+      "name": "Queen’s Gambit Declined — Orthodox",
       "side": "white",
       "startFen": "startpos",
       "lines": [
         {
-          "name": "Declined main",
+          "name": "Orthodox main line",
           "movesUci": [
             "d2d4",
             "d7d5",
@@ -66,31 +119,155 @@
             "b1c3",
             "g8f6",
             "c1g5",
-            "f8e7"
+            "f8e7",
+            "e2e3",
+            "e8g8",
+            "g1f3",
+            "h7h6",
+            "g5h4",
+            "b7b6",
+            "c4d5",
+            "e6d5",
+            "f1d3",
+            "c8b7",
+            "e1g1",
+            "b8d7",
+            "a1c1",
+            "c6c5"
           ]
-        },
+        }
+      ],
+      "ideas": [
+        "Solid pawn structure",
+        "Long-term pressure",
+        "Prepare e4 break"
+      ],
+      "traps": [
+        "Early h6 followed by g5 weakens kingside",
+        "Bad cxd4 timing allows Qa4+ tactics",
+        "Neglecting development enables Ne5 forks"
+      ],
+      "tactics": [
+        "e4 pawn break",
+        "Pin on f6",
+        "Exchange sac on c6",
+        "Minor-piece pressure on e5"
+      ],
+      "tags": ["queen_pawn", "positional"]
+    },
+
+    {
+      "id": "queens_gambit_accepted_modern",
+      "name": "Queen’s Gambit Accepted — Modern Active",
+      "side": "white",
+      "startFen": "startpos",
+      "lines": [
         {
-          "name": "Accepted",
+          "name": "Modern active main line",
           "movesUci": [
             "d2d4",
             "d7d5",
             "c2c4",
             "d5c4",
+            "g1f3",
+            "g8f6",
             "e2e3",
-            "b8c6",
+            "e7e6",
             "f1c4",
+            "c7c5",
+            "e1g1",
+            "a7a6",
+            "d1e2",
+            "b7b5",
+            "c4b3",
+            "c8b7",
+            "f1d1",
+            "b8d7",
+            "b1c3",
+            "f8e7",
+            "e3e4"
+          ]
+        }
+      ],
+      "ideas": [
+        "Fast development",
+        "Center dominance",
+        "Initiative over material"
+      ],
+      "traps": [
+        "Holding pawn too long leads to crushing center",
+        "Early b5 collapses after a4",
+        "Delayed castling allows e4–e5"
+      ],
+      "tactics": [
+        "e4–e5 break",
+        "Rook pressure on d-file",
+        "Queenside pawn breaks",
+        "Diagonal attack on h7"
+      ],
+      "tags": ["queen_pawn", "dynamic"]
+    },
+
+    {
+      "id": "sicilian_najdorf",
+      "name": "Sicilian Defense — Najdorf",
+      "side": "white",
+      "startFen": "startpos",
+      "lines": [
+        {
+          "name": "English Attack",
+          "movesUci": [
+            "e2e4",
+            "c7c5",
+            "g1f3",
+            "d7d6",
+            "d2d4",
+            "c5d4",
+            "f3d4",
+            "g8f6",
+            "b1c3",
+            "a7a6",
+            "c1e3",
             "e7e5"
           ]
         }
       ],
       "ideas": [
-        "Fight for the center",
-        "Develop pieces behind pawns",
-        "Typical plan: e4 break"
+        "Opposite-side castling",
+        "Kingside pawn storm",
+        "Central control with pieces"
       ],
-      "tags": [
-        "queen_pawn"
-      ]
+      "tags": ["sicilian", "sharp", "modern"]
+    },
+
+    {
+      "id": "ruy_lopez_closed",
+      "name": "Ruy López — Closed Defense",
+      "side": "white",
+      "startFen": "startpos",
+      "lines": [
+        {
+          "name": "Closed main line",
+          "movesUci": [
+            "e2e4",
+            "e7e5",
+            "g1f3",
+            "b8c6",
+            "f1b5",
+            "a7a6",
+            "b5a4",
+            "g8f6",
+            "e1g1",
+            "f8e7"
+          ]
+        }
+      ],
+      "ideas": [
+        "Long-term queenside pressure",
+        "Better endgame structure",
+        "Slow buildup attack"
+      ],
+      "tags": ["classical", "strategic"]
     }
   ]
 }
