@@ -319,7 +319,7 @@ return {
   noise: 18
 };
 
-
+}
 
 function minimax(s, depth, alpha, beta){
   if (stopped) return {score: evalCp(s)};
