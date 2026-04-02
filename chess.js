@@ -60,11 +60,6 @@ const promoN = document.getElementById('promoN');
 
 const vsCompEl = document.getElementById('vsComp');
 const humanSideEl = document.getElementById('humanSide');
-const searchModeEl = document.getElementById('searchMode');
-const thinkTimeEl = document.getElementById('thinkTime');
-const depthEl = document.getElementById('depth');
-const timeWrap = document.getElementById('timeWrap');
-const depthWrap = document.getElementById('depthWrap');
 
 const boardSizeEl = document.getElementById('boardSize');
 const focusModeEl = document.getElementById('focusMode');
@@ -96,10 +91,7 @@ undoBtn.addEventListener('click', undo);
 redoBtn.addEventListener('click', redo);
 stopBtn.addEventListener('click', stopSearch);
 
-searchModeEl.addEventListener('change', ()=>{
-  if(searchModeEl.value==='time'){ timeWrap.style.display='inline-flex'; depthWrap.style.display='none'; }
-  else { timeWrap.style.display='none'; depthWrap.style.display='inline-flex'; }
-});
+
 
 function notice(msg){ noticeEl.textContent=msg; noticeEl.style.display = msg?'block':'none'; }
 
@@ -1239,6 +1231,17 @@ function sendPositionToStockfish(){
   sfSend('position fen ' + fen);
 }
 
+function stockfishTimeForElo(elo, forHint=false){
+  if(!elo || elo<=0) return forHint ? 900 : 1200;
+
+  if(elo <= 700) return forHint ? 250 : 350;
+  if(elo <= 1200) return forHint ? 350 : 500;
+  if(elo <= 1600) return forHint ? 500 : 700;
+  if(elo <= 2000) return forHint ? 700 : 900;
+  if(elo <= 2600) return forHint ? 900 : 1200;
+  return forHint ? 1100 : 1500;
+}
+  
 function uciToAppMove(uci){
   const sc=uci.charCodeAt(0)-97;
   const sr=8-parseInt(uci[1],10);
@@ -1286,16 +1289,15 @@ function requestStockfishBestMove({forHint=false}={}){
 
   sendPositionToStockfish();
 
-  const mode=searchModeEl.value;
-  if(mode==='time'){
-    const ms=Math.max(100, parseInt(thinkTimeEl.value,10)||800);
-    sfSend('go movetime '+ms);
-    sfFallbackTimer=setTimeout(()=>{ if(!sfSearching) return; notice('Stockfish is taking longer than expected — press Stop or reduce think time.'); sfStopSearch(); }, ms+3000);
-  }else{
-    const d=Math.max(2, Math.min(30, parseInt(depthEl.value,10)||12));
-    sfSend('go depth '+d);
-    sfFallbackTimer=setTimeout(()=>{ if(!sfSearching) return; notice('Stockfish is taking longer than expected — press Stop or reduce depth.'); sfStopSearch(); }, 8000);
-  }
+  const elo = getDisplayElo();
+  const ms = stockfishTimeForElo(elo, forHint);
+
+  sfSend('go movetime ' + ms);
+  sfFallbackTimer=setTimeout(()=>{
+    if(!sfSearching) return;
+    notice('Stockfish is taking longer than expected — press Stop.');
+    sfStopSearch();
+  }, ms + 3000);
 }
 
 
