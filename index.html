@@ -35,50 +35,44 @@
   </div>
 
   <div id="app">
-   <div id="left">
+ <div id="left">
   <h2 id="status">Turn: White</h2>
   <div class="board" id="board"></div>
 
   <div class="below-board">
-<div class="panel toolbar-panel">
-  <div class="mobile-toolbar">
-    <!-- Play vs computer switch -->
-    <div class="toolbar-group toolbar-switch">
-      <span class="toolbar-label">Computer</span>
+    <div class="panel toolbar-panel">
+      <div class="mobile-toolbar">
+        <div class="toolbar-group toolbar-switch">
+          <span class="toolbar-label">Computer</span>
+          <label class="switch">
+            <input type="checkbox" id="vsComp">
+            <span class="switch-slider"></span>
+          </label>
+        </div>
 
-      <label class="switch">
-        <input type="checkbox" id="vsComp">
-        <span class="switch-slider"></span>
-      </label>
-    </div>
+        <select id="humanSide" class="sr-only" aria-hidden="true" tabindex="-1">
+          <option value="white">White</option>
+          <option value="black">Black</option>
+        </select>
 
-    <!-- Hidden original select kept for JS compatibility -->
-    <select id="humanSide" class="sr-only" aria-hidden="true" tabindex="-1">
-      <option value="white">White</option>
-      <option value="black">Black</option>
-    </select>
+        <div class="toolbar-group">
+          <span class="toolbar-label">Side</span>
+          <div class="segmented" id="sidePicker" role="tablist" aria-label="Choose side">
+            <button type="button" class="seg-btn active" data-side="white">White</button>
+            <button type="button" class="seg-btn" data-side="black">Black</button>
+          </div>
+        </div>
 
-    <!-- Pretty side chooser -->
-    <div class="toolbar-group">
-      <span class="toolbar-label">Side</span>
-      <div class="segmented" id="sidePicker" role="tablist" aria-label="Choose side">
-        <button type="button" class="seg-btn active" data-side="white">White</button>
-        <button type="button" class="seg-btn" data-side="black">Black</button>
+        <div class="toolbar-group toolbar-actions">
+          <button id="newBtn">New</button>
+          <button id="flipBtn">Flip</button>
+          <button id="undoBtn">Undo</button>
+          <button id="redoBtn">Redo</button>
+          <button id="hintBtn" title="Show a best-move hint">Hint ✨</button>
+          <button id="clearHintBtn" title="Clear hint">Clear</button>
+          <button id="stopBtn" style="display:none;">Stop</button>
+        </div>
       </div>
-    </div>
-
-    <!-- Main actions -->
-    <div class="toolbar-group toolbar-actions">
-      <button id="newBtn">New</button>
-      <button id="flipBtn">Flip</button>
-      <button id="undoBtn">Undo</button>
-      <button id="redoBtn">Redo</button>
-      <button id="hintBtn" title="Show a best-move hint">Hint ✨</button>
-      <button id="clearHintBtn" title="Clear hint">Clear</button>
-      <button id="stopBtn" style="display:none;">Stop</button>
-    </div>
-  </div>
-</div>
     </div>
 
     <div class="panel">
