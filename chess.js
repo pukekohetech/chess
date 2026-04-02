@@ -857,10 +857,47 @@ return;
 }
 
 // Opening book
-const BOOK_LINES=[
+const BOOK_LINES = [
+  // Italian / Ruy Lopez / simple e4 e5
+  'e2e4 e7e5 g1f3 b8c6 f1c4 f8c5',
   'e2e4 e7e5 g1f3 b8c6 f1b5 a7a6',
+  'e2e4 e7e5 g1f3 b8c6 f1b5 g8f6',
+  'e2e4 e7e5 g1f3 b8c6 d2d4 e5d4',
+
+  // Scotch / Four Knights
+  'e2e4 e7e5 g1f3 b8c6 d2d4 e5d4 f3d4',
+  'e2e4 e7e5 g1f3 b8c6 b1c3 g8f6',
+
+  // Sicilian
+  'e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4',
+  'e2e4 c7c5 g1f3 b8c6 d2d4 c5d4 f3d4',
+
+  // French
+  'e2e4 e7e6 d2d4 d7d5 b1c3',
+  'e2e4 e7e6 d2d4 d7d5 b1d2',
+
+  // Caro-Kann
+  'e2e4 c7c6 d2d4 d7d5 b1c3',
+  'e2e4 c7c6 d2d4 d7d5 e4d5 c6d5',
+
+  // Queen pawn / QGD / London
   'd2d4 d7d5 c2c4 e7e6 b1c3',
-  'c2c4 e7e5 b1c3 g8f6 g2g3'
+  'd2d4 d7d5 g1f3 g8f6 c1f4',
+  'd2d4 g8f6 g1f3 e7e6 c1f4',
+
+  // English / Réti
+  'c2c4 e7e5 b1c3 g8f6 g2g3',
+  'g1f3 d7d5 c2c4',
+
+  // Scholar-style ideas / traps
+  'e2e4 e7e5 d1h5 b8c6 f1c4 g8f6',
+  'e2e4 e7e5 f1c4 b8c6 d1h5 g8f6',
+  'e2e4 e7e5 d1f3 b8c6 f1c4 g8f6',
+  'e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 d2d3',
+
+  // Trap / tactic-flavoured branches
+  'f2f3 e7e5 g2g4 d8h4',
+  'e2e4 e7e5 g1f3 d7d6 d2d4'
 ];
 function algToRC(alg){ return {c:alg.charCodeAt(0)-97, r:8-parseInt(alg[1],10)}; }
 function uciToMove(uci){ const a=algToRC(uci.slice(0,2)); const b=algToRC(uci.slice(2,4)); return {sr:a.r,sc:a.c,er:b.r,ec:b.c}; }
