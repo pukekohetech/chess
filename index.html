@@ -35,98 +35,98 @@
   </div>
 
   <div id="app">
- <div id="left">
-  <h2 id="status">Turn: White</h2>
-  <div class="board" id="board"></div>
+    <div id="left">
+      <h2 id="status">Turn: White</h2>
+      <div class="board" id="board"></div>
 
-  <div class="below-board">
-    <div class="panel toolbar-panel">
-      <div class="mobile-toolbar">
-        <div class="toolbar-group toolbar-switch">
-          <span class="toolbar-label">Computer</span>
-          <label class="switch">
-            <input type="checkbox" id="vsComp">
-            <span class="switch-slider"></span>
-          </label>
-        </div>
-
-        <select id="humanSide" class="sr-only" aria-hidden="true" tabindex="-1">
-          <option value="white">White</option>
-          <option value="black">Black</option>
-        </select>
-
-        <div class="toolbar-group">
-          <span class="toolbar-label">Side</span>
-          <div class="segmented" id="sidePicker" role="tablist" aria-label="Choose side">
-            <button type="button" class="seg-btn active" data-side="white">White</button>
-            <button type="button" class="seg-btn" data-side="black">Black</button>
-          </div>
-        </div>
-
-        <div class="toolbar-group toolbar-actions">
-          <button id="newBtn">New</button>
-          <button id="flipBtn">Flip</button>
-          <button id="undoBtn">Undo</button>
-          <button id="redoBtn">Redo</button>
-          <button id="hintBtn" title="Show a best-move hint">Hint ✨</button>
-          <button id="clearHintBtn" title="Clear hint">Clear</button>
-          <button id="stopBtn" style="display:none;">Stop</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="strength-card" id="strengthCard">
-        <div class="strength-top">
-          <div class="strength-title">Engine strength</div>
-          <div class="strength-pill" id="strengthReadout">Unlimited</div>
-        </div>
-
-        <div class="strength-sub">
-          400–699 Beginner • 700–1200 Club • 1201+ Stockfish
-        </div>
-
-        <div class="strength-controls">
-          <input
-            type="range"
-            id="strengthSlider"
-            min="0"
-            max="3190"
-            step="25"
-            value="0"
-            list="strengthTicks"
-            aria-label="Engine strength"
-          />
-
-          <datalist id="strengthTicks">
-            <option value="0" label="∞"></option>
-            <option value="400" label="400"></option>
-            <option value="700" label="700"></option>
-            <option value="1200" label="1200"></option>
-            <option value="1600" label="1600"></option>
-            <option value="2000" label="2000"></option>
-            <option value="2600" label="2600"></option>
-            <option value="3190" label="3190"></option>
-          </datalist>
-
-          <div class="strength-actions">
-            <div class="strength-scale">
-              <span>∞</span>
-              <span>700</span>
-              <span>1200</span>
-              <span>2000</span>
-              <span>3190</span>
+      <div class="below-board">
+        <div class="panel toolbar-panel">
+          <div class="mobile-toolbar">
+            <div class="toolbar-group toolbar-switch">
+              <span class="toolbar-label">Computer</span>
+              <label class="switch">
+                <input type="checkbox" id="vsComp">
+                <span class="switch-slider"></span>
+              </label>
             </div>
-            <button class="btn-mini" id="strengthReset" type="button">Reset</button>
-          </div>
 
-          <div class="strength-help" id="strengthHelp"></div>
+            <!-- Hidden original select kept for JS compatibility -->
+            <select id="humanSide" class="sr-only" aria-hidden="true" tabindex="-1">
+              <option value="white">White</option>
+              <option value="black">Black</option>
+            </select>
+
+            <div class="toolbar-group">
+              <span class="toolbar-label">Side</span>
+              <div class="segmented" id="sidePicker" role="tablist" aria-label="Choose side">
+                <button type="button" class="seg-btn active" data-side="white">White</button>
+                <button type="button" class="seg-btn" data-side="black">Black</button>
+              </div>
+            </div>
+
+            <div class="toolbar-group toolbar-actions">
+              <button id="newBtn">New</button>
+              <button id="flipBtn">Flip</button>
+              <button id="undoBtn">Undo</button>
+              <button id="redoBtn">Redo</button>
+              <button id="hintBtn" title="Show a best-move hint">Hint ✨</button>
+              <button id="clearHintBtn" title="Clear hint">Clear</button>
+              <button id="stopBtn" style="display:none;">Stop</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="strength-card" id="strengthCard">
+            <div class="strength-top">
+              <div class="strength-title">Engine strength</div>
+              <div class="strength-pill" id="strengthReadout">Unlimited</div>
+            </div>
+
+            <div class="strength-sub">
+              400–699 Beginner • 700–1200 Club • 1201+ Stockfish
+            </div>
+
+            <div class="strength-controls">
+              <input
+                type="range"
+                id="strengthSlider"
+                min="0"
+                max="3190"
+                step="25"
+                value="0"
+                list="strengthTicks"
+                aria-label="Engine strength"
+              />
+
+              <datalist id="strengthTicks">
+                <option value="0" label="∞"></option>
+                <option value="400" label="400"></option>
+                <option value="700" label="700"></option>
+                <option value="1200" label="1200"></option>
+                <option value="1600" label="1600"></option>
+                <option value="2000" label="2000"></option>
+                <option value="2600" label="2600"></option>
+                <option value="3190" label="3190"></option>
+              </datalist>
+
+              <div class="strength-actions">
+                <div class="strength-scale">
+                  <span>∞</span>
+                  <span>700</span>
+                  <span>1200</span>
+                  <span>2000</span>
+                  <span>3190</span>
+                </div>
+                <button class="btn-mini" id="strengthReset" type="button">Reset</button>
+              </div>
+
+              <div class="strength-help" id="strengthHelp"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
-
 
     <div id="side">
       <div class="panel" id="evalPanel">
@@ -152,24 +152,6 @@
       <details class="panel" open>
         <summary><b>Game options</b></summary>
         <div class="stack">
-          <label>
-            Search:
-            <select id="searchMode">
-              <option value="time" selected>Time</option>
-              <option value="depth">Depth</option>
-            </select>
-          </label>
-
-          <label id="timeWrap">
-            Think (ms):
-            <input type="number" id="thinkTime" min="100" max="5000" step="100" value="800">
-          </label>
-
-          <label id="depthWrap" style="display:none;">
-            Depth:
-            <input type="number" id="depth" min="2" max="5" value="3" style="width:64px;">
-          </label>
-
           <label><input type="checkbox" id="useBook" checked> Opening book</label>
         </div>
       </details>
@@ -290,34 +272,35 @@
       </details>
     </div>
   </div>
-<script>
-  // Keep the pretty White/Black buttons synced with the original hidden select
-  document.addEventListener('DOMContentLoaded', () => {
-    const sideSelect = document.getElementById('humanSide');
-    const sidePicker = document.getElementById('sidePicker');
-    if (!sideSelect || !sidePicker) return;
 
-    const buttons = Array.from(sidePicker.querySelectorAll('.seg-btn'));
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const sideSelect = document.getElementById('humanSide');
+      const sidePicker = document.getElementById('sidePicker');
+      if (!sideSelect || !sidePicker) return;
 
-    function syncSideButtons() {
-      const value = sideSelect.value || 'white';
+      const buttons = Array.from(sidePicker.querySelectorAll('.seg-btn'));
+
+      function syncSideButtons() {
+        const value = sideSelect.value || 'white';
+        buttons.forEach(btn => {
+          const active = btn.dataset.side === value;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+      }
+
       buttons.forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.side === value);
-        btn.setAttribute('aria-selected', btn.dataset.side === value ? 'true' : 'false');
+        btn.addEventListener('click', () => {
+          sideSelect.value = btn.dataset.side;
+          syncSideButtons();
+        });
       });
-    }
 
-    buttons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        sideSelect.value = btn.dataset.side;
-        sideSelect.dispatchEvent(new Event('change', { bubbles: true }));
-        syncSideButtons();
-      });
+      syncSideButtons();
     });
+  </script>
 
-    syncSideButtons();
-  });
-</script>
   <script src="chess.js"></script>
 </body>
 </html>
