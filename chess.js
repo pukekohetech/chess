@@ -79,6 +79,12 @@ const loadFenBtn = document.getElementById('loadFenBtn');
 const hintBtn = document.getElementById('hintBtn');
 const clearHintBtn = document.getElementById('clearHintBtn');
 
+const reviewPanel = document.getElementById('reviewPanel');
+const runReviewBtn = document.getElementById('runReviewBtn');
+const reviewSummaryEl = document.getElementById('reviewSummary');
+const reviewListEl = document.getElementById('reviewList');
+const reviewChartEl = document.getElementById('reviewChart');
+
 // Buttons
 const newBtn = document.getElementById('newBtn');
 const flipBtn = document.getElementById('flipBtn');
@@ -1100,6 +1106,8 @@ let awaitingAIMoveSF=false;
 let sfSearching=false;
 let sfFallbackTimer=null;
 
+
+
 function sfStopSearch(){
   try{ if(stockfish) stockfish.postMessage('stop'); }catch(_e){}
   sfSearching=false;
@@ -1114,6 +1122,65 @@ function stopSearch(){
   // stop any engine search (Stockfish or learning engine)
   sfStopSearch();
   simpleStopSearch();
+}
+
+function analyzeFenWithStockfish(fen, movetime = 400){
+  return new Promise((resolve, reject) => {
+    initStockfish();
+
+    let resolved = false;
+    let bestMove = null;
+    let evalCp = 0;
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Review timeout'));
+    }, movetime + 3000);
+
+    function cleanup(){
+      clearTimeout(timeout);
+      if(stockfish){
+        stockfish.removeEventListener?.('message', onMsg);
+      }
+    }
+
+    function onMsg(e){
+      const line = typeof e.data === 'string' ? e.data : '';
+
+      if(line.startsWith('info ') && line.includes(' score cp ')){
+        const m = line.match(/score cp (-?\d+)/);
+        if(m) evalCp = parseInt(m[1], 10);
+      }
+
+      if(line.startsWith('info ') && line.includes(' score mate ')){
+        const m = line.match(/score mate (-?\d+)/);
+        if(m){
+          const mate = parseInt(m[1], 10);
+          evalCp = mate > 0 ? 9999 : -9999;
+        }
+      }
+
+      if(line.startsWith('bestmove')){
+        const parts = line.split(/\s+/);
+        bestMove = parts[1] || null;
+        if(!resolved){
+          resolved = true;
+          cleanup();
+          resolve({ bestMove, evalCp });
+        }
+      }
+    }
+
+    if(!stockfish){
+      reject(new Error('Stockfish not available'));
+      return;
+    }
+
+    stockfish.addEventListener?.('message', onMsg);
+    sfSend('ucinewgame');
+    sfSend('position fen ' + fen);
+    sfSend('go movetime ' + movetime);
+  });
 }
 
 function sfNoticeError(msg){
@@ -1414,6 +1481,9 @@ function exitTrainingMode(){ globalThis.__TRAINING_ACTIVE__ = false; }
 let openingState = null;
 let tacticState = null;
 let openingPlaybackTimer = null;
+
+let reviewData = null;
+let reviewRunning = false;
 
 // ===============================
 // Candidate-move training (TACTICS ONLY)
