@@ -296,7 +296,34 @@
       </details>
     </div>
   </div>
+<script>
+  // Keep the pretty White/Black buttons synced with the original hidden select
+  document.addEventListener('DOMContentLoaded', () => {
+    const sideSelect = document.getElementById('humanSide');
+    const sidePicker = document.getElementById('sidePicker');
+    if (!sideSelect || !sidePicker) return;
 
+    const buttons = Array.from(sidePicker.querySelectorAll('.seg-btn'));
+
+    function syncSideButtons() {
+      const value = sideSelect.value || 'white';
+      buttons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.side === value);
+        btn.setAttribute('aria-selected', btn.dataset.side === value ? 'true' : 'false');
+      });
+    }
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        sideSelect.value = btn.dataset.side;
+        sideSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        syncSideButtons();
+      });
+    });
+
+    syncSideButtons();
+  });
+</script>
   <script src="chess.js"></script>
 </body>
 </html>
