@@ -1370,7 +1370,10 @@ clearHintBtn.addEventListener('click', ()=>{ hintMove=null; notice(''); render()
 
 
 function maybeAiMove(){
-  if(globalThis.__TRAINING_ACTIVE__) return;
+  // Only block engine moves during strict trainer mode
+  if(globalThis.__TRAINING_ACTIVE__ && openingState && openingState.mode === 'trainer') return;
+  if(globalThis.__TRAINING_ACTIVE__ && !openingState) return;
+
   if(!vsCompEl.checked || gameOver) return;
   const human=humanSideEl.value;
   const aiColor=(human==='white')?'black':'white';
@@ -1410,6 +1413,7 @@ function exitTrainingMode(){ globalThis.__TRAINING_ACTIVE__ = false; }
 // Training runtime state
 let openingState = null;
 let tacticState = null;
+let openingPlaybackTimer = null;
 
 // ===============================
 // Candidate-move training (TACTICS ONLY)
@@ -1432,6 +1436,7 @@ const tacticsFileEl = document.getElementById('trainTacticsFile');
 const openingSelect = document.getElementById('openingSelect');
 const openingLineSelect = document.getElementById('openingLineSelect');
 const openingSideSelect = document.getElementById('openingSideSelect');
+const openingModeSelect = document.getElementById('openingModeSelect');
 const startOpeningBtn = document.getElementById('startOpening');
 const stopTrainingBtn = document.getElementById('stopTraining');
 const stopTrainingBtn2 = document.getElementById('stopTraining2');
@@ -1442,6 +1447,17 @@ const tacMaxEl = document.getElementById('tacMax');
 const tacThemesEl = document.getElementById('tacThemes');
 const nextTacticBtn = document.getElementById('nextTactic');
 const tacInfoEl = document.getElementById('tacInfo');
+
+function clearOpeningPlaybackTimer(){
+  if(openingPlaybackTimer){
+    clearTimeout(openingPlaybackTimer);
+    openingPlaybackTimer = null;
+  }
+}
+
+function getOpeningMode(){
+  return openingModeSelect ? openingModeSelect.value : 'trainer';
+}
 
 function setTrainingStatus(msg){ if(trainingStatusEl) trainingStatusEl.textContent = msg; }
 
@@ -1666,37 +1682,139 @@ function openingAutoAdvance(){
 }
 
 function startOpeningTraining(){
-  enterTrainingMode();
   const o = getSelectedOpening();
-  if(!o){ setTrainingStatus('No openings loaded.'); return; }
-  const lineIdx = parseInt(openingLineSelect.value,10) || 0;
-  const ln = (o.lines||[])[lineIdx];
-  if(!ln || !(ln.movesUci||[]).length){ setTrainingStatus('Selected line has no moves.'); return; }
+  if(!o){
+    setTrainingStatus('No openings loaded.');
+    return;
+  }
 
-  // reset board
+  const lineIdx = parseInt(openingLineSelect.value, 10) || 0;
+  const ln = (o.lines || [])[lineIdx];
+  if(!ln || !(ln.movesUci || []).length){
+    setTrainingStatus('Selected line has no moves.');
+    return;
+  }
+
+  clearOpeningPlaybackTimer();
+  stopSearch();
+
+  const mode = getOpeningMode();
+  const studentColor = openingSideSelect ? openingSideSelect.value : (o.side || 'white');
+
+  // Reset board to opening start
   setPositionFromFenOrStart(o.startFen || 'startpos');
 
-  trainingActive = true;
   openingState = {
     openingId: o.id || o.name,
-    lineName: ln.name || ('Line '+(lineIdx+1)),
-    studentColor: (openingSideSelect ? openingSideSelect.value : (o.side||'white')),
+    lineName: ln.name || ('Line ' + (lineIdx + 1)),
+    studentColor,
     moves: ln.movesUci.slice(),
-    idx: 0
+    idx: 0,
+    mode
   };
 
-  // Let board settle then auto-advance
-  setTimeout(openingAutoAdvance, 30);
+  if(mode === 'trainer'){
+    enterTrainingMode();
+    trainingActive = true;
+    setTrainingStatus(`Opening Trainer: ${openingState.lineName}`);
+    setTimeout(openingAutoAdvance, 30);
+    return;
+  }
+
+  if(mode === 'demo'){
+    // no strict training lock; we are just watching
+    trainingActive = false;
+    exitTrainingMode();
+    setTrainingStatus(`Opening Demo: ${openingState.lineName}`);
+    setTimeout(playOpeningDemoStep, 250);
+    return;
+  }
+
+  if(mode === 'sparring'){
+    // autoplay the opening line, then hand off to the normal engine
+    trainingActive = false;
+    exitTrainingMode();
+    setTrainingStatus(`Opening Sparring: ${openingState.lineName}`);
+    setTimeout(playOpeningSparringStep, 250);
+    return;
+  }
 }
 
+function playOpeningDemoStep(){
+  if(!openingState || openingState.mode !== 'demo') return;
+
+  if(openingState.idx >= openingState.moves.length){
+    setTrainingStatus('Opening demo complete ✅');
+    openingState = null;
+    clearOpeningPlaybackTimer();
+    return;
+  }
+
+  const uci = openingState.moves[openingState.idx];
+  autoPlayUciMove(uci);
+  openingState.idx++;
+
+  setTrainingStatus(`Demo: move ${openingState.idx}/${openingState.moves.length}`);
+
+  clearOpeningPlaybackTimer();
+  openingPlaybackTimer = setTimeout(playOpeningDemoStep, 700);
+}
+
+function playOpeningSparringStep(){
+  if(!openingState || openingState.mode !== 'sparring') return;
+
+  if(openingState.idx >= openingState.moves.length){
+    setTrainingStatus('Opening complete — continue against engine.');
+    const studentColor = openingState.studentColor;
+    openingState = null;
+    clearOpeningPlaybackTimer();
+
+    // Ensure the main game side matches the opening side choice
+    if(humanSideEl){
+      humanSideEl.value = studentColor;
+      humanSideEl.dispatchEvent(new Event('change', { bubbles:true }));
+    }
+
+    // If you have the pretty segmented side UI, sync it too
+    const sidePicker = document.getElementById('sidePicker');
+    if(sidePicker){
+      const buttons = Array.from(sidePicker.querySelectorAll('.seg-btn'));
+      buttons.forEach(btn => {
+        const active = btn.dataset.side === studentColor;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+    }
+
+    // Turn on vs computer if not already enabled
+    if(vsCompEl && !vsCompEl.checked){
+      vsCompEl.checked = true;
+      vsCompEl.dispatchEvent(new Event('change', { bubbles:true }));
+    }
+
+    maybeAiMove();
+    return;
+  }
+
+  const uci = openingState.moves[openingState.idx];
+  autoPlayUciMove(uci);
+  openingState.idx++;
+
+  setTrainingStatus(`Opening: move ${openingState.idx}/${openingState.moves.length}`);
+
+  clearOpeningPlaybackTimer();
+  openingPlaybackTimer = setTimeout(playOpeningSparringStep, 700);
+}
+  
 function stopTraining(){
+  clearOpeningPlaybackTimer();
   trainingActive = false;
   openingState = null;
   tacticState = null;
   setTrainingStatus('Training stopped.');
   exitTrainingMode();
 }
-
+  
 if(startOpeningBtn) startOpeningBtn.addEventListener('click', startOpeningTraining);
 if(stopTrainingBtn) stopTrainingBtn.addEventListener('click', stopTraining);
 if(stopTrainingBtn2) stopTrainingBtn2.addEventListener('click', stopTraining);
