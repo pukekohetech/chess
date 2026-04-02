@@ -171,100 +171,89 @@
         </div>
       </details>
 
-      <details class="panel">
-        <summary><b>Training</b></summary>
+<details class="panel">
+  <summary><b>Training</b></summary>
 
-        <div id="trainingPanel" aria-label="Training">
-          <div class="trainingTop">
-            <div class="trainingTitle">Training</div>
-            <div class="trainingTabs">
-              <button id="trainTabOpenings" class="tabBtn" type="button">Openings</button>
-              <button id="trainTabTactics" class="tabBtn" type="button">Tactics</button>
-              
-            </div>
-          </div>
+  <div id="trainingPanel" aria-label="Training">
+    <div class="trainingTop">
+      <div class="trainingTitle">Training</div>
+      <div class="trainingTabs">
+        <button id="trainTabOpenings" class="tabBtn" type="button">Openings</button>
+        <button id="trainTabTactics" class="tabBtn" type="button">Tactics</button>
+      </div>
+    </div>
 
-          <div class="trainingLoad">
-            <button id="trainLoadRepo" type="button">Load from repo</button>
-            <label class="filePick">
-              Openings JSON (one or more)
-              <input id="trainOpeningsFile" type="file" accept="application/json" multiple>
-            </label>
-            <label class="filePick">
-              Tactics JSON (one or more)
-              <input id="trainTacticsFile" type="file" accept="application/json" multiple>
-            </label>
-            <button id="trainUseFiles" type="button">Use uploaded</button>
-          </div>
+    <div class="trainingLoad">
+      <button id="trainLoadRepo" type="button">Load from repo</button>
+      <label class="filePick">
+        Openings JSON (one or more)
+        <input id="trainOpeningsFile" type="file" accept="application/json" multiple>
+      </label>
+      <label class="filePick">
+        Tactics JSON (one or more)
+        <input id="trainTacticsFile" type="file" accept="application/json" multiple>
+      </label>
+      <button id="trainUseFiles" type="button">Use uploaded</button>
+    </div>
 
-          <div id="trainOpenings" class="trainSection">
-            
-            <label>
-              Opening
-              <select id="openingSelect"></select>
-            </label>
+    <div id="trainOpenings" class="trainSection">
+      <label>
+        Opening
+        <select id="openingSelect"></select>
+      </label>
 
-            <label>
-              Line
-              <select id="openingLineSelect"></select>
-            </label>
+      <label>
+        Line
+        <select id="openingLineSelect"></select>
+      </label>
 
-<label>
-  Your side
-  <select id="openingSideSelect">
-    <option value="white">White</option>
-    <option value="black">Black</option>
-  </select>
-</label>
+      <label>
+        Your side
+        <select id="openingSideSelect">
+          <option value="white">White</option>
+          <option value="black">Black</option>
+        </select>
+      </label>
 
-<label>
-  Mode
-  <select id="openingModeSelect">
-    <option value="trainer">Trainer</option>
-    <option value="demo">Demo</option>
-    <option value="sparring">Play vs engine</option>
-  </select>
-</label>
+      <label>
+        Mode
+        <select id="openingModeSelect">
+          <option value="trainer">Trainer</option>
+          <option value="demo">Demo</option>
+          <option value="sparring">Play vs engine</option>
+        </select>
+      </label>
 
-<div class="trainBtns">
-  <button id="startOpening" type="button">Start</button>
-  <button id="stopTraining" type="button">Stop</button>
-</div>
-              <div id="trainingPanel" aria-label="Training">
-          <div class="trainingTop">
-            <div class="trainingTitle">Training</div>
-            <div class="trainingTabs">
-              <button id="trainTabOpenings" class="tabBtn" type="button">Openings</button>
-              <button id="trainTabTactics" class="tabBtn" type="button">Tactics</button>
-              
-            </div>
-          </div>
+      <div class="trainBtns">
+        <button id="startOpening" type="button">Start</button>
+        <button id="stopTraining" type="button">Stop</button>
+      </div>
 
-            <div class="trainNote" id="openingIdeas"></div>
-          </div>
+      <div class="trainNote" id="openingIdeas"></div>
+    </div>
 
-          <div id="trainTactics" class="trainSection" style="display:none;">
-            <div class="row2">
-              <label>Min rating <input id="tacMin" type="number" value="600" min="0" max="4000"></label>
-              <label>Max rating <input id="tacMax" type="number" value="1400" min="0" max="4000"></label>
-            </div>
+    <div id="trainTactics" class="trainSection" style="display:none;">
+      <div class="row2">
+        <label>Min rating <input id="tacMin" type="number" value="600" min="0" max="4000"></label>
+        <label>Max rating <input id="tacMax" type="number" value="1400" min="0" max="4000"></label>
+      </div>
 
-            <label>
-              Themes (comma-separated)
-              <input id="tacThemes" type="text" placeholder="fork, mate, pin">
-            </label>
+      <label>
+        Themes (comma-separated)
+        <input id="tacThemes" type="text" placeholder="fork, mate, pin">
+      </label>
 
-            <div class="trainBtns">
-              <button id="nextTactic" type="button">Next puzzle</button>
-              <button id="stopTraining2" type="button">Stop</button>
-            </div>
+      <div class="trainBtns">
+        <button id="nextTactic" type="button">Next puzzle</button>
+        <button id="stopTraining2" type="button">Stop</button>
+      </div>
 
-            <div class="trainNote" id="tacInfo"></div>
-          </div>
+      <div class="trainNote" id="tacInfo"></div>
+    </div>
 
-          <div class="trainingStatus" id="trainingStatus">Load training data to begin.</div>
-        </div>
-      </details>
+    <div class="trainingStatus" id="trainingStatus">Load training data to begin.</div>
+  </div>
+</details>
 
       <details class="panel">
         <summary><b>FEN / Advanced</b></summary>
