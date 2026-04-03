@@ -1710,7 +1710,7 @@ function renderReviewList(results){
     const left = document.createElement('div');
 
     const side = sideIcon(r.side);
-    const icon = labelIcon(r.label);
+    const icon = reviewIcon(r.label);
 
     left.textContent = `${side} ${r.ply}. ${r.playedMove} — ${icon} ${r.label}`;
 
