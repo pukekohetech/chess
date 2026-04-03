@@ -1759,15 +1759,16 @@ function renderReviewList(results){
   }
 }
 
-  function renderReviewChart(results){
+function renderReviewChart(results){
   if(!reviewChartEl) return;
+
   const ctx = reviewChartEl.getContext('2d');
   const w = reviewChartEl.width;
   const h = reviewChartEl.height;
 
   ctx.clearRect(0, 0, w, h);
 
-  const vals = results.map(r => Math.max(-1000, Math.min(1000, r.afterEval)));
+  const vals = results.map(r => Math.max(-1000, Math.min(1000, r.afterEval || 0)));
   if(!vals.length) return;
 
   const pad = 16;
@@ -1783,14 +1784,13 @@ function renderReviewList(results){
     return pad + ((maxY - v) * (h - pad * 2)) / (maxY - minY);
   }
 
-  // midline
   ctx.strokeStyle = '#bbb';
+  ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(pad, yAt(0));
   ctx.lineTo(w - pad, yAt(0));
   ctx.stroke();
 
-  // line
   ctx.strokeStyle = '#1a73e8';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -1802,7 +1802,6 @@ function renderReviewList(results){
   });
   ctx.stroke();
 
-  // points
   vals.forEach((v, i) => {
     const x = xAt(i);
     const y = yAt(v);
