@@ -2287,7 +2287,7 @@ const wrapped = function(sr,sc,er,ec,promo){
     };
     render();
 
-    classifyMoveWithStockfish(beforeFen, afterFen, moverColor, uci)
+    classifyMoveWithStockfish(beforeFen, afterFen, moverColor, uci) 
       .then(resolved => {
         if(lastMove && lastMove.er === er && lastMove.ec === ec){
           liveReviewMark = {
