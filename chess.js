@@ -678,7 +678,7 @@ function lessonFeedback(move, beforeSnap){
     // Build final message (short)
     const parts=[];
     if(gaveCheck) parts.push('✅ Nice! You gave check.');
-    if(castled) parts.push('✅ Good habit: castling improves king safety.');jj
+    if(castled) parts.push('✅ Good habit: castling improves king safety.');
     if(captured) parts.push('🎯 Capture made — always ask: “what can my opponent do now?”');
     if(tacticWarn) parts.push(tacticWarn);
     if(hangWarn) parts.push(hangWarn);
