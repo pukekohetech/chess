@@ -740,3 +740,37 @@ button:hover{
 .review-inaccuracy { color: #f9a825; } /* yellow */
 .review-mistake { color: #ef6c00; }   /* orange */
 .review-blunder { color: #c62828; }   /* red */
+
+
+.liveReviewMark{
+  position:absolute;
+  top:2px;
+  left:2px;
+  z-index:4;
+  font-size:14px;
+  line-height:1;
+  background:rgba(255,255,255,0.9);
+  border-radius:999px;
+  padding:2px 4px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.18);
+}
+
+.review-best{
+  color:#2e7d32;
+}
+
+.review-good{
+  color:#388e3c;
+}
+
+.review-inaccuracy{
+  color:#f9a825;
+}
+
+.review-mistake{
+  color:#ef6c00;
+}
+
+.review-blunder{
+  color:#c62828;
+}
