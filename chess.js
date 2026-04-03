@@ -1720,15 +1720,12 @@ function renderReviewList(results){
     row.className = 'histLine';
     row.style.justifyContent = 'space-between';
 
-    // LEFT SIDE (main move display)
     const left = document.createElement('div');
-
     const side = sideIcon(r.side);
     const icon = reviewIcon(r.label);
 
     left.textContent = `${side} ${r.ply}. ${r.playedMove} — ${icon} ${r.label}`;
 
-    // RIGHT SIDE (details)
     const right = document.createElement('div');
     right.className = 'small';
     right.textContent = `Best: ${r.bestMove || '-'} | Δ ${r.loss}`;
@@ -1737,7 +1734,6 @@ function renderReviewList(results){
     row.appendChild(right);
 
     row.addEventListener('click', () => gotoPly(r.ply));
-
     reviewListEl.appendChild(row);
   }
 }
