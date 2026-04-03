@@ -1170,6 +1170,7 @@ let sfSearching=false;
 let sfFallbackTimer=null;
 let reviewStockfish = null;
 let reviewStockfishReady = false;
+let reviewAnalysisQueue = Promise.resolve();
 let reviewQueue = [];
 
 function initReviewStockfish(){
@@ -1221,69 +1222,73 @@ function stopSearch(){
 }
 
 function analyzeFenWithStockfish(fen, movetime = 250){
-  return new Promise((resolve, reject) => {
-    initReviewStockfish();
+  reviewAnalysisQueue = reviewAnalysisQueue.then(() => {
+    return new Promise((resolve, reject) => {
+      initReviewStockfish();
 
-    let resolved = false;
-    let bestMove = null;
-    let evalCp = 0;
+      let resolved = false;
+      let bestMove = null;
+      let evalCp = 0;
 
-    const previousHandler = reviewStockfish.onmessage;
+      const previousHandler = reviewStockfish.onmessage;
 
-    const timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error('Review timeout'));
-    }, movetime + 2500);
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Review timeout'));
+      }, movetime + 3000);
 
-    function cleanup(){
-      clearTimeout(timeout);
-      reviewStockfish.onmessage = previousHandler;
-    }
-
-    reviewStockfish.onmessage = (e)=>{
-      const line = typeof e.data === 'string' ? e.data : '';
-
-      if(line === 'uciok'){
-        reviewStockfish.postMessage('isready');
-        return;
+      function cleanup(){
+        clearTimeout(timeout);
+        reviewStockfish.onmessage = previousHandler;
       }
 
-      if(line === 'readyok'){
-        reviewStockfishReady = true;
-        for(const cmd of reviewQueue) reviewStockfish.postMessage(cmd);
-        reviewQueue = [];
-        return;
-      }
+      reviewStockfish.onmessage = (e)=>{
+        const line = typeof e.data === 'string' ? e.data : '';
 
-      if(line.startsWith('info ') && line.includes(' score cp ')){
-        const m = line.match(/score cp (-?\d+)/);
-        if(m) evalCp = parseInt(m[1], 10);
-      }
-
-      if(line.startsWith('info ') && line.includes(' score mate ')){
-        const m = line.match(/score mate (-?\d+)/);
-        if(m){
-          const mate = parseInt(m[1], 10);
-          evalCp = mate > 0 ? 10000 : -10000;
+        if(line === 'uciok'){
+          reviewStockfish.postMessage('isready');
+          return;
         }
-      }
 
-      if(line.startsWith('bestmove')){
-        const parts = line.split(/\s+/);
-        bestMove = parts[1] || null;
-
-        if(!resolved){
-          resolved = true;
-          cleanup();
-          resolve({ bestMove, evalCp });
+        if(line === 'readyok'){
+          reviewStockfishReady = true;
+          for(const cmd of reviewQueue) reviewStockfish.postMessage(cmd);
+          reviewQueue = [];
+          return;
         }
-      }
-    };
 
-    reviewSfSend('ucinewgame');
-    reviewSfSend('position fen ' + fen);
-    reviewSfSend('go movetime ' + movetime);
+        if(line.startsWith('info ') && line.includes(' score cp ')){
+          const m = line.match(/score cp (-?\d+)/);
+          if(m) evalCp = parseInt(m[1], 10);
+        }
+
+        if(line.startsWith('info ') && line.includes(' score mate ')){
+          const m = line.match(/score mate (-?\d+)/);
+          if(m){
+            const mate = parseInt(m[1], 10);
+            evalCp = mate > 0 ? 10000 : -10000;
+          }
+        }
+
+        if(line.startsWith('bestmove')){
+          const parts = line.split(/\s+/);
+          bestMove = parts[1] || null;
+
+          if(!resolved){
+            resolved = true;
+            cleanup();
+            resolve({ bestMove, evalCp });
+          }
+        }
+      };
+
+      reviewSfSend('ucinewgame');
+      reviewSfSend('position fen ' + fen);
+      reviewSfSend('go movetime ' + movetime);
+    });
   });
+
+  return reviewAnalysisQueue;
 }
 
 function sfNoticeError(msg){
@@ -1674,14 +1679,14 @@ async function runGameReview(){
       const beforeFen = boardToFen();
       const sideToMove = turn;
 
-      const playedUci =
-        lastMove
-          ? String.fromCharCode(97 + lastMove.sc) + (8 - lastMove.sr) +
-            String.fromCharCode(97 + lastMove.ec) + (8 - lastMove.er)
-          : null;
-
       restore(timeline[i + 1]);
       const afterFen = boardToFen();
+
+      const moveFrom = timeline[i + 1].lastMove;
+      const playedUci = moveFrom
+        ? String.fromCharCode(97 + moveFrom.sc) + (8 - moveFrom.sr) +
+          String.fromCharCode(97 + moveFrom.ec) + (8 - moveFrom.er)
+        : null;
 
       const before = await analyzeFenWithStockfish(beforeFen, 250);
       const after = await analyzeFenWithStockfish(afterFen, 250);
@@ -2331,7 +2336,7 @@ const wrapped = function(sr,sc,er,ec,promo){
     trainingOnUserMove(uci);
   }
 
-  if(!globalThis.__TRAINING_ACTIVE__){
+ if(!globalThis.__TRAINING_ACTIVE__ && !reviewRunning){
     const moverColor = isWhite(before.board[sr][sc]) ? 'white' : 'black';
 
     restore(before);
