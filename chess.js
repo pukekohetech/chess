@@ -1638,7 +1638,23 @@ function renderReviewSummary(results){
   reviewSummaryEl.textContent =
     `Best: ${counts.Best} · Good: ${counts.Good} · Inaccuracies: ${counts.Inaccuracy} · Mistakes: ${counts.Mistake} · Blunders: ${counts.Blunder}`;
 }
-  function renderReviewList(results){
+
+ function sideIcon(side){
+  return side === 'white' ? '⚪' : '⚫';
+}
+
+function labelIcon(label){
+  switch(label){
+    case 'Best': return '✅';
+    case 'Good': return '👍';
+    case 'Inaccuracy': return '⚠️';
+    case 'Mistake': return '❗';
+    case 'Blunder': return '❌';
+    default: return '';
+  }
+}
+  
+function renderReviewList(results){
   reviewListEl.innerHTML = '';
 
   for(const r of results){
@@ -1646,12 +1662,18 @@ function renderReviewSummary(results){
     row.className = 'histLine';
     row.style.justifyContent = 'space-between';
 
+    // LEFT SIDE (main move display)
     const left = document.createElement('div');
-    left.textContent = `${r.ply}. ${r.playedMove} — ${r.label}`;
 
+    const side = sideIcon(r.side);
+    const icon = labelIcon(r.label);
+
+    left.textContent = `${side} ${r.ply}. ${r.playedMove} — ${icon} ${r.label}`;
+
+    // RIGHT SIDE (details)
     const right = document.createElement('div');
     right.className = 'small';
-    right.textContent = `Best: ${r.bestMove || '-'} | Loss: ${r.loss}`;
+    right.textContent = `Best: ${r.bestMove || '-'} | Δ ${r.loss}`;
 
     row.appendChild(left);
     row.appendChild(right);
