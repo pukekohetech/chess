@@ -181,6 +181,7 @@ function initialBoard(){
 }
 
 function resetState(){
+  liveReviewMark = null;
   board=initialBoard();
   turn='white';
   selected=null;
@@ -497,6 +498,7 @@ function applyMove(sr,sc,er,ec,promoChoice){
 }
 
 function undo(){
+  liveReviewMark = null;
   if(!undoStack.length) return;
   redoStack.push(snapshot());
   restore(undoStack.pop());
@@ -506,6 +508,7 @@ function undo(){
 }
 
 function redo(){
+  liveReviewMark = null;
   if(!redoStack.length) return;
   undoStack.push(snapshot());
   restore(redoStack.pop());
