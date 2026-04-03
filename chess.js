@@ -731,11 +731,17 @@ function render(){
           sq.appendChild(badge);
         }
       }
-      if(liveReviewMark && r === liveReviewMark.r && c === liveReviewMark.c){
+if(liveReviewMark && r === liveReviewMark.r && c === liveReviewMark.c){
   const mark = document.createElement('div');
   mark.className = 'liveReviewMark ' + ('review-' + liveReviewMark.label.toLowerCase());
   mark.textContent = liveReviewMark.icon;
-  mark.title = liveReviewMark.label;
+
+  if(liveReviewMark.bestMove){
+    mark.title = `${liveReviewMark.label} • Best: ${liveReviewMark.bestMove} • Loss: ${liveReviewMark.loss ?? 0}`;
+  } else {
+    mark.title = liveReviewMark.label;
+  }
+
   sq.appendChild(mark);
 }
 
