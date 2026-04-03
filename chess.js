@@ -2199,20 +2199,22 @@ const after = snapshot();
 
 if(source === 'user'){
   trainingOnUserMove(uci);
+}
 
-  if(!globalThis.__TRAINING_ACTIVE__){
-    const label = classifyMoveQuick(before, after, {sr,sc,er,ec,promo,uci});
-    liveReviewMark = {
-      r: er,
-      c: ec,
-      label,
-      icon: reviewIcon(label)
-    };
+if(!globalThis.__TRAINING_ACTIVE__){
+  const label = classifyMoveQuick(before, after, {sr,sc,er,ec,promo,uci});
+  liveReviewMark = {
+    r: er,
+    c: ec,
+    label,
+    icon: reviewIcon(label),
+    side: isWhite(before.board[sr][sc]) ? 'white' : 'black'
+  };
 
+  if(source === 'user'){
     lessonFeedback({sr,sc,er,ec,promo,uci}, before);
   }
 } else {
-  // optional: mark engine/trainer moves too
   liveReviewMark = null;
 }
 
