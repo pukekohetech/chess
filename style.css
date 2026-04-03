@@ -734,3 +734,9 @@ button:hover{
   background:#dbe8ff;
   outline:1px solid #2b78e4;
 }
+
+.review-best { color: #2e7d32; }      /* green */
+.review-good { color: #388e3c; }
+.review-inaccuracy { color: #f9a825; } /* yellow */
+.review-mistake { color: #ef6c00; }   /* orange */
+.review-blunder { color: #c62828; }   /* red */
