@@ -1118,9 +1118,42 @@ let pendingHintSF=false;
 let awaitingAIMoveSF=false;
 let sfSearching=false;
 let sfFallbackTimer=null;
+let reviewStockfish = null;
+let reviewStockfishReady = false;
+let reviewQueue = [];
 
+function initReviewStockfish(){
+  if(reviewStockfish) return;
 
+  reviewStockfish = new Worker(STOCKFISH_WORKER_URL);
 
+  reviewStockfish.onerror = (e)=>{
+    console.error('Review Stockfish error:', e);
+  };
+
+  reviewStockfish.onmessage = (e)=>{
+    const line = (typeof e.data === 'string') ? e.data : '';
+    if(line === 'uciok'){
+      reviewStockfish.postMessage('isready');
+      return;
+    }
+    if(line === 'readyok'){
+      reviewStockfishReady = true;
+      for(const cmd of reviewQueue) reviewStockfish.postMessage(cmd);
+      reviewQueue = [];
+      return;
+    }
+  };
+
+  reviewStockfish.postMessage('uci');
+}
+
+function reviewSfSend(cmd){
+  initReviewStockfish();
+  if(reviewStockfishReady) reviewStockfish.postMessage(cmd);
+  else reviewQueue.push(cmd);
+}
+  
 function sfStopSearch(){
   try{ if(stockfish) stockfish.postMessage('stop'); }catch(_e){}
   sfSearching=false;
