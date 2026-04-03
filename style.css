@@ -741,6 +741,11 @@ button:hover{
 .review-mistake { color: #ef6c00; }   /* orange */
 .review-blunder { color: #c62828; }   /* red */
 
+@media (max-width: 600px){
+  .liveReviewMark{
+    font-size:20px;
+  }
+}
 
 .liveReviewMark{
   position:absolute;
