@@ -1629,26 +1629,23 @@ async function runGameReview(){
       const beforeFen = boardToFen();
       const sideToMove = turn;
 
-      const best = await analyzeFenWithStockfish(beforeFen, 350);
-
       restore(timeline[i + 1]);
-      const afterEval = quickEvalCp();
+      const afterFen = boardToFen();
 
-      // Convert quick eval sign to side-to-move perspective
-      let swing;
-      if(sideToMove === 'white'){
-        swing = afterEval - best.evalCp;
-      } else {
-        swing = (-afterEval) - (-best.evalCp);
-      }
+      const before = await analyzeFenWithStockfish(beforeFen, 250);
+      const after = await analyzeFenWithStockfish(afterFen, 250);
 
-      const loss = Math.abs(swing);
+      const beforeScore = sideToMove === 'white' ? before.evalCp : -before.evalCp;
+      const afterScore  = sideToMove === 'white' ? after.evalCp  : -after.evalCp;
+
+      const loss = beforeScore - afterScore;
 
       let label = 'Good';
-      if(loss >= 300) label = 'Blunder';
-      else if(loss >= 120) label = 'Mistake';
-      else if(loss >= 60) label = 'Inaccuracy';
-      else if(loss <= 20) label = 'Best';
+      if(loss <= 20) label = 'Best';
+      else if(loss <= 60) label = 'Good';
+      else if(loss <= 120) label = 'Inaccuracy';
+      else if(loss <= 300) label = 'Mistake';
+      else label = 'Blunder';
 
       const playedMove = moveList[i] || '';
 
@@ -1656,9 +1653,9 @@ async function runGameReview(){
         ply: i + 1,
         side: sideToMove,
         playedMove,
-        bestMove: best.bestMove,
-        evalCp: best.evalCp,
-        afterEval,
+        bestMove: before.bestMove,
+        evalCp: before.evalCp,
+        afterEval: after.evalCp,
         loss,
         label
       });
@@ -1680,7 +1677,7 @@ async function runGameReview(){
     updateEval();
     reviewRunning = false;
   }
-}  
+}
 function renderReviewSummary(results){
   const counts = {
     Best: 0,
