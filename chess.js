@@ -678,7 +678,7 @@ function lessonFeedback(move, beforeSnap){
     // Build final message (short)
     const parts=[];
     if(gaveCheck) parts.push('✅ Nice! You gave check.');
-    if(castled) parts.push('✅ Good habit: castling improves king safety.');
+    if(castled) parts.push('✅ Good habit: castling improves king safety.');jj
     if(captured) parts.push('🎯 Capture made — always ask: “what can my opponent do now?”');
     if(tacticWarn) parts.push(tacticWarn);
     if(hangWarn) parts.push(hangWarn);
@@ -1803,48 +1803,77 @@ function renderReviewChart(results){
 
   ctx.clearRect(0, 0, w, h);
 
-  const vals = results.map(r => Math.max(-1000, Math.min(1000, r.afterEval || 0)));
-  if(!vals.length) return;
-
-  const pad = 16;
-  const minY = -1000;
-  const maxY = 1000;
+  const pad = 20;
+  const maxLoss = Math.max(50, ...results.map(r => Math.min(500, Math.max(0, r.loss || 0))));
+  const stepX = results.length > 1 ? (w - pad * 2) / (results.length - 1) : 0;
 
   function xAt(i){
-    if(vals.length === 1) return pad;
-    return pad + (i * (w - pad * 2)) / (vals.length - 1);
+    return pad + i * stepX;
   }
 
-  function yAt(v){
-    return pad + ((maxY - v) * (h - pad * 2)) / (maxY - minY);
+  function yAt(loss){
+    const clamped = Math.min(500, Math.max(0, loss || 0));
+    return h - pad - (clamped / maxLoss) * (h - pad * 2);
   }
 
+  // axes
   ctx.strokeStyle = '#bbb';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(pad, yAt(0));
-  ctx.lineTo(w - pad, yAt(0));
+  ctx.moveTo(pad, pad);
+  ctx.lineTo(pad, h - pad);
+  ctx.lineTo(w - pad, h - pad);
   ctx.stroke();
 
-  ctx.strokeStyle = '#1a73e8';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  vals.forEach((v, i) => {
-    const x = xAt(i);
+  // horizontal guide lines
+  [0, 100, 300, 500].forEach(v => {
     const y = yAt(v);
-    if(i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-
-  vals.forEach((v, i) => {
-    const x = xAt(i);
-    const y = yAt(v);
-    ctx.fillStyle = '#1a73e8';
+    ctx.strokeStyle = '#eee';
     ctx.beginPath();
-    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(pad, y);
+    ctx.lineTo(w - pad, y);
+    ctx.stroke();
+
+    ctx.fillStyle = '#666';
+    ctx.font = '10px sans-serif';
+    ctx.fillText(String(v), 2, y + 3);
   });
+
+  // line segments colored by side
+  for(let i = 0; i < results.length; i++){
+    const r = results[i];
+    const x = xAt(i);
+    const y = yAt(r.loss || 0);
+
+    ctx.beginPath();
+    ctx.fillStyle = r.side === 'white' ? '#888' : '#222';
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    if(i > 0){
+      const prev = results[i - 1];
+      ctx.beginPath();
+      ctx.strokeStyle = '#1a73e8';
+      ctx.lineWidth = 2;
+      ctx.moveTo(xAt(i - 1), yAt(prev.loss || 0));
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
+  }
+
+  // legend
+  ctx.fillStyle = '#888';
+  ctx.beginPath();
+  ctx.arc(w - 90, 12, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#333';
+  ctx.font = '11px sans-serif';
+  ctx.fillText('White move', w - 80, 16);
+
+  ctx.fillStyle = '#222';
+  ctx.beginPath();
+  ctx.arc(w - 20, 12, 4, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 // Multi-pack helpers (manifest + merge)
