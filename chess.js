@@ -180,6 +180,40 @@ function initialBoard(){
   return [ 'rnbqkbnr','pppppppp','........','........','........','........','PPPPPPPP','RNBQKBNR' ].map(r=>r.split(''));
 }
 
+function sideReviewStats(results, side){
+  const sideMoves = results.filter(r => r.side === side);
+  if(!sideMoves.length){
+    return {
+      moves: 0,
+      avgLoss: 0,
+      score: 0,
+      counts: { Best:0, Good:0, Inaccuracy:0, Mistake:0, Blunder:0 }
+    };
+  }
+
+  const counts = { Best:0, Good:0, Inaccuracy:0, Mistake:0, Blunder:0 };
+  let totalLoss = 0;
+  let score = 0;
+
+  for(const r of sideMoves){
+    counts[r.label] = (counts[r.label] || 0) + 1;
+    totalLoss += Math.max(0, r.loss || 0);
+
+    if(r.label === 'Best') score += 3;
+    else if(r.label === 'Good') score += 2;
+    else if(r.label === 'Inaccuracy') score += 1;
+    else if(r.label === 'Mistake') score += 0;
+    else if(r.label === 'Blunder') score -= 2;
+  }
+
+  return {
+    moves: sideMoves.length,
+    avgLoss: Math.round(totalLoss / sideMoves.length),
+    score,
+    counts
+  };
+}
+
 function resetState(){
   liveReviewMark = null;
   board=initialBoard();
@@ -1705,20 +1739,17 @@ async function runGameReview(){
   }
 }
 function renderReviewSummary(results){
-  const counts = {
-    Best: 0,
-    Good: 0,
-    Inaccuracy: 0,
-    Mistake: 0,
-    Blunder: 0
-  };
+  const white = sideReviewStats(results, 'white');
+  const black = sideReviewStats(results, 'black');
 
-  for(const r of results){
-    counts[r.label] = (counts[r.label] || 0) + 1;
-  }
+  let winner = 'Tie';
+  if(white.score > black.score) winner = 'White played better';
+  else if(black.score > white.score) winner = 'Black played better';
 
-  reviewSummaryEl.textContent =
-    `Best: ${counts.Best} · Good: ${counts.Good} · Inaccuracies: ${counts.Inaccuracy} · Mistakes: ${counts.Mistake} · Blunders: ${counts.Blunder}`;
+  reviewSummaryEl.innerHTML =
+    `<div><b>${winner}</b></div>` +
+    `<div style="margin-top:6px;"><b>White</b> — Score: ${white.score} · ACPL: ${white.avgLoss} · Blunders: ${white.counts.Blunder} · Mistakes: ${white.counts.Mistake}</div>` +
+    `<div style="margin-top:4px;"><b>Black</b> — Score: ${black.score} · ACPL: ${black.avgLoss} · Blunders: ${black.counts.Blunder} · Mistakes: ${black.counts.Mistake}</div>`;
 }
 
  function sideIcon(side){
