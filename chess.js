@@ -1170,28 +1170,40 @@ function stopSearch(){
   simpleStopSearch();
 }
 
-function analyzeFenWithStockfish(fen, movetime = 400){
+function analyzeFenWithStockfish(fen, movetime = 250){
   return new Promise((resolve, reject) => {
-    initStockfish();
+    initReviewStockfish();
 
     let resolved = false;
     let bestMove = null;
     let evalCp = 0;
 
+    const previousHandler = reviewStockfish.onmessage;
+
     const timeout = setTimeout(() => {
       cleanup();
       reject(new Error('Review timeout'));
-    }, movetime + 3000);
+    }, movetime + 2500);
 
     function cleanup(){
       clearTimeout(timeout);
-      if(stockfish){
-        stockfish.removeEventListener?.('message', onMsg);
-      }
+      reviewStockfish.onmessage = previousHandler;
     }
 
-    function onMsg(e){
+    reviewStockfish.onmessage = (e)=>{
       const line = typeof e.data === 'string' ? e.data : '';
+
+      if(line === 'uciok'){
+        reviewStockfish.postMessage('isready');
+        return;
+      }
+
+      if(line === 'readyok'){
+        reviewStockfishReady = true;
+        for(const cmd of reviewQueue) reviewStockfish.postMessage(cmd);
+        reviewQueue = [];
+        return;
+      }
 
       if(line.startsWith('info ') && line.includes(' score cp ')){
         const m = line.match(/score cp (-?\d+)/);
@@ -1202,30 +1214,25 @@ function analyzeFenWithStockfish(fen, movetime = 400){
         const m = line.match(/score mate (-?\d+)/);
         if(m){
           const mate = parseInt(m[1], 10);
-          evalCp = mate > 0 ? 9999 : -9999;
+          evalCp = mate > 0 ? 10000 : -10000;
         }
       }
 
       if(line.startsWith('bestmove')){
         const parts = line.split(/\s+/);
         bestMove = parts[1] || null;
+
         if(!resolved){
           resolved = true;
           cleanup();
           resolve({ bestMove, evalCp });
         }
       }
-    }
+    };
 
-    if(!stockfish){
-      reject(new Error('Stockfish not available'));
-      return;
-    }
-
-    stockfish.addEventListener?.('message', onMsg);
-    sfSend('ucinewgame');
-    sfSend('position fen ' + fen);
-    sfSend('go movetime ' + movetime);
+    reviewSfSend('ucinewgame');
+    reviewSfSend('position fen ' + fen);
+    reviewSfSend('go movetime ' + movetime);
   });
 }
 
@@ -1700,49 +1707,27 @@ function reviewIcon(label){
   }
 }
 
-function classifyMoveQuick(beforeSnap, afterSnap, move){
-  const saved = snapshot();
-  try{
-    const mover = isWhite(beforeSnap.board[move.sr][move.sc]) ? 'white' : 'black';
-    const enemy = mover === 'white' ? 'black' : 'white';
+async function classifyMoveWithStockfish(beforeFen, afterFen, moverColor){
+  const before = await analyzeFenWithStockfish(beforeFen, 180);
+  const after = await analyzeFenWithStockfish(afterFen, 180);
 
-    restore(afterSnap);
+  const beforeScore = moverColor === 'white' ? before.evalCp : -before.evalCp;
+  const afterScore  = moverColor === 'white' ? after.evalCp  : -after.evalCp;
 
-    const movedPiece = board[move.er][move.ec];
-    const movedValue = pieceValue(movedPiece);
+  const loss = beforeScore - afterScore;
 
-    const { atk, def } = countAttackersDefenders(move.er, move.ec);
-    const gaveCheck = isKingInCheck(enemy);
-    const captured = beforeSnap.board[move.er][move.ec] !== '.';
-    const castled = beforeSnap.board[move.sr][move.sc].toLowerCase() === 'k' &&
-                    Math.abs(move.ec - move.sc) === 2;
+  let label = 'Good';
+  if(loss <= 20) label = 'Best';
+  else if(loss <= 60) label = 'Good';
+  else if(loss <= 120) label = 'Inaccuracy';
+  else if(loss <= 300) label = 'Mistake';
+  else label = 'Blunder';
 
-    const enemyBestCapture = maxImmediateCaptureValue(enemy);
-
-    // Hanging moved piece
-    if(movedPiece !== '.' && atk > 0 && def === 0){
-      if(movedValue >= 9) return 'Blunder';
-      if(movedValue >= 5) return 'Mistake';
-      return 'Inaccuracy';
-    }
-
-    // Tactical punishment available immediately
-    if(enemyBestCapture >= 9) return 'Blunder';
-    if(enemyBestCapture >= 5) return 'Mistake';
-    if(enemyBestCapture >= 3) return 'Inaccuracy';
-
-    // Positive signals
-    if(gaveCheck) return 'Good';
-    if(castled) return 'Good';
-    if(captured) return 'Good';
-
-    // Fallback: quiet move
-    return 'Good';
-  } catch(_e){
-    return 'Good';
-  } finally {
-    restore(saved);
-  }
+  return {
+    label,
+    loss,
+    bestMove: before.bestMove
+  };
 }
   
 function renderReviewList(results){
@@ -2233,36 +2218,80 @@ if(nextTacticBtn) nextTacticBtn.addEventListener('click', nextTactic);
       return promo ? (u + promo.toLowerCase()) : u;
     };
 
-    const wrapped = function(sr,sc,er,ec,promo){
-      const uci = uciFromCoords(sr,sc,er,ec,promo);
-      const source = (typeof MOVE_SOURCE==='string') ? MOVE_SOURCE : 'user';
-   const before = snapshot();
-const res = orig(sr,sc,er,ec,promo);
-const after = snapshot();
+const wrapped = function(sr,sc,er,ec,promo){
+  const uci = uciFromCoords(sr,sc,er,ec,promo);
+  const source = (typeof MOVE_SOURCE==='string') ? MOVE_SOURCE : 'user';
 
-if(source === 'user'){
-  trainingOnUserMove(uci);
-}
-
-if(!globalThis.__TRAINING_ACTIVE__){
-  const label = classifyMoveQuick(before, after, {sr,sc,er,ec,promo,uci});
-  liveReviewMark = {
-    r: er,
-    c: ec,
-    label,
-    icon: reviewIcon(label),
-    side: isWhite(before.board[sr][sc]) ? 'white' : 'black'
-  };
+  const before = snapshot();
+  const res = orig(sr,sc,er,ec,promo);
+  const after = snapshot();
 
   if(source === 'user'){
-    lessonFeedback({sr,sc,er,ec,promo,uci}, before);
+    trainingOnUserMove(uci);
   }
-} else {
-  liveReviewMark = null;
-}
 
-return res;
+  if(!globalThis.__TRAINING_ACTIVE__){
+    const moverColor = isWhite(before.board[sr][sc]) ? 'white' : 'black';
+
+    restore(before);
+    const beforeFen = boardToFen();
+
+    restore(after);
+    const afterFen = boardToFen();
+
+    liveReviewMark = {
+      r: er,
+      c: ec,
+      label: 'Good',
+      icon: '⏳',
+      side: moverColor,
+      bestMove: null,
+      loss: null
     };
+    render();
+
+    classifyMoveWithStockfish(beforeFen, afterFen, moverColor)
+      .then(resolved => {
+        if(lastMove && lastMove.er === er && lastMove.ec === ec){
+          liveReviewMark = {
+            r: er,
+            c: ec,
+            label: resolved.label,
+            icon: reviewIcon(resolved.label),
+            side: moverColor,
+            bestMove: resolved.bestMove,
+            loss: resolved.loss
+          };
+          render();
+        }
+      })
+      .catch(err => {
+        console.error('Live review failed:', err);
+        if(lastMove && lastMove.er === er && lastMove.ec === ec){
+          liveReviewMark = {
+            r: er,
+            c: ec,
+            label: 'Good',
+            icon: '👍',
+            side: moverColor,
+            bestMove: null,
+            loss: null
+          };
+          render();
+        }
+      });
+
+    restore(after);
+
+    if(source === 'user'){
+      lessonFeedback({sr,sc,er,ec,promo,uci}, before);
+    }
+  } else {
+    liveReviewMark = null;
+  }
+
+  return res;
+};
     wrapped.__trainingWrapped = true;
     // preserve other properties
     Object.assign(wrapped, orig);
