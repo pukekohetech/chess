@@ -1549,7 +1549,172 @@ async function loadJsonFromUrl(url){
   return await res.json();
 }
 
+async function runGameReview(){
+  if(reviewRunning) return;
+  if(!timeline || timeline.length < 2){
+    notice('No game to review yet.');
+    return;
+  }
 
+  reviewRunning = true;
+  reviewPanel.style.display = 'block';
+  reviewSummaryEl.textContent = 'Reviewing game…';
+  reviewListEl.innerHTML = '';
+
+  const original = snapshot();
+  const results = [];
+
+  try{
+    for(let i = 0; i < timeline.length - 1; i++){
+      restore(timeline[i]);
+      const beforeFen = boardToFen();
+      const sideToMove = turn;
+
+      const best = await analyzeFenWithStockfish(beforeFen, 350);
+
+      restore(timeline[i + 1]);
+      const afterEval = quickEvalCp();
+
+      // Convert quick eval sign to side-to-move perspective
+      let swing;
+      if(sideToMove === 'white'){
+        swing = afterEval - best.evalCp;
+      } else {
+        swing = (-afterEval) - (-best.evalCp);
+      }
+
+      const loss = Math.abs(swing);
+
+      let label = 'Good';
+      if(loss >= 300) label = 'Blunder';
+      else if(loss >= 120) label = 'Mistake';
+      else if(loss >= 60) label = 'Inaccuracy';
+      else if(loss <= 20) label = 'Best';
+
+      const playedMove = moveList[i] || '';
+
+      results.push({
+        ply: i + 1,
+        side: sideToMove,
+        playedMove,
+        bestMove: best.bestMove,
+        evalCp: best.evalCp,
+        afterEval,
+        loss,
+        label
+      });
+
+      reviewSummaryEl.textContent = `Reviewing move ${i + 1} of ${timeline.length - 1}…`;
+    }
+
+    reviewData = results;
+    renderReviewSummary(results);
+    renderReviewList(results);
+    renderReviewChart(results);
+  } catch(err){
+    console.error(err);
+    reviewSummaryEl.textContent = 'Review failed.';
+  } finally {
+    restore(original);
+    render();
+    updateStatus();
+    updateEval();
+    reviewRunning = false;
+  }
+}  
+function renderReviewSummary(results){
+  const counts = {
+    Best: 0,
+    Good: 0,
+    Inaccuracy: 0,
+    Mistake: 0,
+    Blunder: 0
+  };
+
+  for(const r of results){
+    counts[r.label] = (counts[r.label] || 0) + 1;
+  }
+
+  reviewSummaryEl.textContent =
+    `Best: ${counts.Best} · Good: ${counts.Good} · Inaccuracies: ${counts.Inaccuracy} · Mistakes: ${counts.Mistake} · Blunders: ${counts.Blunder}`;
+}
+  function renderReviewList(results){
+  reviewListEl.innerHTML = '';
+
+  for(const r of results){
+    const row = document.createElement('div');
+    row.className = 'histLine';
+    row.style.justifyContent = 'space-between';
+
+    const left = document.createElement('div');
+    left.textContent = `${r.ply}. ${r.playedMove} — ${r.label}`;
+
+    const right = document.createElement('div');
+    right.className = 'small';
+    right.textContent = `Best: ${r.bestMove || '-'} | Loss: ${r.loss}`;
+
+    row.appendChild(left);
+    row.appendChild(right);
+
+    row.addEventListener('click', () => gotoPly(r.ply));
+
+    reviewListEl.appendChild(row);
+  }
+}
+
+  function renderReviewChart(results){
+  if(!reviewChartEl) return;
+  const ctx = reviewChartEl.getContext('2d');
+  const w = reviewChartEl.width;
+  const h = reviewChartEl.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const vals = results.map(r => Math.max(-1000, Math.min(1000, r.afterEval)));
+  if(!vals.length) return;
+
+  const pad = 16;
+  const minY = -1000;
+  const maxY = 1000;
+
+  function xAt(i){
+    if(vals.length === 1) return pad;
+    return pad + (i * (w - pad * 2)) / (vals.length - 1);
+  }
+
+  function yAt(v){
+    return pad + ((maxY - v) * (h - pad * 2)) / (maxY - minY);
+  }
+
+  // midline
+  ctx.strokeStyle = '#bbb';
+  ctx.beginPath();
+  ctx.moveTo(pad, yAt(0));
+  ctx.lineTo(w - pad, yAt(0));
+  ctx.stroke();
+
+  // line
+  ctx.strokeStyle = '#1a73e8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  vals.forEach((v, i) => {
+    const x = xAt(i);
+    const y = yAt(v);
+    if(i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // points
+  vals.forEach((v, i) => {
+    const x = xAt(i);
+    const y = yAt(v);
+    ctx.fillStyle = '#1a73e8';
+    ctx.beginPath();
+    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
 
 // Multi-pack helpers (manifest + merge)
 async function fetchJson(url){
@@ -1666,6 +1831,10 @@ async function loadTrainingFromFiles(){
   }
 }
 
+if(runReviewBtn){
+  runReviewBtn.addEventListener('click', runGameReview);
+}
+  
 if(trainLoadRepoBtn) trainLoadRepoBtn.addEventListener('click', loadTrainingFromRepo);
 if(trainUseFilesBtn) trainUseFilesBtn.addEventListener('click', loadTrainingFromFiles);
 
