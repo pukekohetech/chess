@@ -1648,15 +1648,48 @@ async function runGameReview(){
       const beforeScore = sideToMove === 'white' ? before.evalCp : -before.evalCp;
       const afterScore  = sideToMove === 'white' ? after.evalCp  : -after.evalCp;
 
-      const loss = beforeScore - afterScore;
+    const loss = beforeScore - afterScore;
 
-      let label = 'Good';
-      if(loss <= 20) label = 'Best';
-      else if(loss <= 60) label = 'Good';
-      else if(loss <= 120) label = 'Inaccuracy';
-      else if(loss <= 300) label = 'Mistake';
-      else label = 'Blunder';
+// If move improves position → always good
+if(loss < 0){
+  return {
+    label: 'Best',
+    loss,
+    bestMove: before.bestMove
+  };
+}
 
+// If played best move → Best
+if(before.bestMove && before.bestMove === afterFenMoveGuess){
+  return {
+    label: 'Best',
+    loss,
+    bestMove: before.bestMove
+  };
+}
+
+// Handle mate scores (huge eval = winning)
+if(Math.abs(after.evalCp) >= 9000){
+  return {
+    label: 'Best',
+    loss,
+    bestMove: before.bestMove
+  };
+}
+
+// Normal classification
+let label = 'Good';
+if(loss <= 20) label = 'Best';
+else if(loss <= 60) label = 'Good';
+else if(loss <= 120) label = 'Inaccuracy';
+else if(loss <= 300) label = 'Mistake';
+else label = 'Blunder';
+
+return {
+  label,
+  loss,
+  bestMove: before.bestMove
+};
       const playedMove = moveList[i] || '';
 
       results.push({
