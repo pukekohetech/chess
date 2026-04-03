@@ -1505,6 +1505,7 @@ clearHintBtn.addEventListener('click', ()=>{ hintMove=null; notice(''); render()
 
 
 
+
 function maybeAiMove(){
   // Only block engine moves during strict trainer mode
   if(globalThis.__TRAINING_ACTIVE__ && openingState && openingState.mode === 'trainer') return;
@@ -1638,7 +1639,12 @@ async function runGameReview(){
       restore(timeline[i]);
       const beforeFen = boardToFen();
       const sideToMove = turn;
-      const playedMove = moveList[i] || '';
+
+      const playedUci =
+        lastMove
+          ? String.fromCharCode(97 + lastMove.sc) + (8 - lastMove.sr) +
+            String.fromCharCode(97 + lastMove.ec) + (8 - lastMove.er)
+          : null;
 
       restore(timeline[i + 1]);
       const afterFen = boardToFen();
@@ -1648,12 +1654,10 @@ async function runGameReview(){
 
       const beforeScore = sideToMove === 'white' ? before.evalCp : -before.evalCp;
       const afterScore  = sideToMove === 'white' ? after.evalCp  : -after.evalCp;
-
       const loss = beforeScore - afterScore;
 
       let label = 'Good';
-
-      if (before.bestMove && playedMove && before.bestMove === playedMove.toLowerCase()) {
+      if (before.bestMove && playedUci && before.bestMove === playedUci.toLowerCase()) {
         label = 'Best';
       } else if (Math.abs(after.evalCp) >= 9000) {
         label = 'Best';
@@ -1674,10 +1678,10 @@ async function runGameReview(){
       results.push({
         ply: i + 1,
         side: sideToMove,
-        playedMove,
+        playedMove: moveList[i] || '',
         bestMove: before.bestMove,
         evalCp: before.evalCp,
-        afterEval: after.evalCp,
+        afterEval: sideToMove === 'white' ? after.evalCp : -after.evalCp,
         loss,
         label
       });
