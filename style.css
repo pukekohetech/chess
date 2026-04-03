@@ -747,12 +747,23 @@ button:hover{
   top:2px;
   left:2px;
   z-index:4;
-  font-size:14px;
+
+  font-size:18px;          /* bigger */
   line-height:1;
-  background:rgba(255,255,255,0.9);
-  border-radius:999px;
-  padding:2px 4px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.18);
+
+  background:none;         /* remove white bubble */
+  box-shadow:none;         /* remove shadow */
+  padding:0;
+
+  pointer-events:none;
+
+  opacity:1;
+  transition: opacity 0.6s ease;
+}
+
+/* fade-out class */
+.liveReviewMark.fade{
+  opacity:0;
 }
 
 .review-best{
