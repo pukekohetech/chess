@@ -1,6 +1,6 @@
 // Move source helper (training / engine / user)
 let MOVE_SOURCE = 'user';
-function withMoveSource(src, fn){ const prev = MOVE_SOURCE; MOVE_SOURCE = src; try{ return fn(); } finally { MOVE_SOURCE = prev; } }
+function withMoveSource(src, fn){ const prev = MOVE_SOURCE; MOVE_SOURCE = src; try{ return fn(); } finally { MOVE_SOURCE = prev; } } 
 
 (()=>{
 'use strict';
