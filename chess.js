@@ -154,6 +154,9 @@ let hintMove=null;
 let halfmoveClock=0, fullmoveNumber=1;
 let timeline=[], currentPly=0;
 
+  // live review
+  let liveReviewMark = null;
+
 // Promotion UI
 let promotionCallback=null;
 function showPromotionPicker(color, cb){
@@ -725,6 +728,13 @@ function render(){
           sq.appendChild(badge);
         }
       }
+      if(liveReviewMark && r === liveReviewMark.r && c === liveReviewMark.c){
+  const mark = document.createElement('div');
+  mark.className = 'liveReviewMark ' + ('review-' + liveReviewMark.label.toLowerCase());
+  mark.textContent = liveReviewMark.icon;
+  mark.title = liveReviewMark.label;
+  sq.appendChild(mark);
+}
 
       if(selected){
         if(r===selected.r && c===selected.c) sq.classList.add('selected');
@@ -1643,7 +1653,7 @@ function renderReviewSummary(results){
   return side === 'white' ? '⚪' : '⚫';
 }
 
-function labelIcon(label){
+function reviewIcon(label){
   switch(label){
     case 'Best': return '✅';
     case 'Good': return '👍';
@@ -1651,6 +1661,37 @@ function labelIcon(label){
     case 'Mistake': return '❗';
     case 'Blunder': return '❌';
     default: return '';
+  }
+}
+
+function classifyMoveQuick(beforeSnap, afterSnap, move){
+  try{
+    const mover = isWhite(beforeSnap.board[move.sr][move.sc]) ? 'white' : 'black';
+
+    // Very lightweight eval swing using your material eval
+    restore(beforeSnap);
+    const beforeEval = quickEvalCp();
+
+    restore(afterSnap);
+    const afterEval = quickEvalCp();
+
+    // Convert to mover perspective
+    let delta;
+    if(mover === 'white'){
+      delta = afterEval - beforeEval;
+    } else {
+      delta = (-afterEval) - (-beforeEval);
+    }
+
+    const loss = -delta;
+
+    if(loss <= 20) return 'Best';
+    if(loss <= 60) return 'Good';
+    if(loss <= 120) return 'Inaccuracy';
+    if(loss <= 300) return 'Mistake';
+    return 'Blunder';
+  } catch(_e){
+    return 'Good';
   }
 }
   
@@ -2149,13 +2190,30 @@ if(nextTacticBtn) nextTacticBtn.addEventListener('click', nextTactic);
     const wrapped = function(sr,sc,er,ec,promo){
       const uci = uciFromCoords(sr,sc,er,ec,promo);
       const source = (typeof MOVE_SOURCE==='string') ? MOVE_SOURCE : 'user';
-      const before = snapshot();
-      const res = orig(sr,sc,er,ec,promo);
-      if(source==='user'){
-        trainingOnUserMove(uci);
-        if(!globalThis.__TRAINING_ACTIVE__) lessonFeedback({sr,sc,er,ec,promo,uci}, before);
-      }
-      return res;
+   const before = snapshot();
+const res = orig(sr,sc,er,ec,promo);
+const after = snapshot();
+
+if(source === 'user'){
+  trainingOnUserMove(uci);
+
+  if(!globalThis.__TRAINING_ACTIVE__){
+    const label = classifyMoveQuick(before, after, {sr,sc,er,ec,promo,uci});
+    liveReviewMark = {
+      r: er,
+      c: ec,
+      label,
+      icon: reviewIcon(label)
+    };
+
+    lessonFeedback({sr,sc,er,ec,promo,uci}, before);
+  }
+} else {
+  // optional: mark engine/trainer moves too
+  liveReviewMark = null;
+}
+
+return res;
     };
     wrapped.__trainingWrapped = true;
     // preserve other properties
