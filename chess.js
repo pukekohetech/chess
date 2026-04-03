@@ -737,12 +737,22 @@ if(liveReviewMark && r === liveReviewMark.r && c === liveReviewMark.c){
   mark.textContent = liveReviewMark.icon;
 
   if(liveReviewMark.bestMove){
-    mark.title = `${liveReviewMark.label} • Best: ${liveReviewMark.bestMove} • Loss: ${liveReviewMark.loss ?? 0}`;
+    mark.title = `${liveReviewMark.label} • Best: ${liveReviewMark.bestMove}`;
   } else {
     mark.title = liveReviewMark.label;
   }
 
   sq.appendChild(mark);
+
+  // fade after delay
+  setTimeout(() => {
+    mark.classList.add('fade');
+  }, 1500);   // stays visible longer
+
+  // remove after fade
+  setTimeout(() => {
+    mark.remove();
+  }, 2200);
 }
 
       if(selected){
