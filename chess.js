@@ -1668,33 +1668,47 @@ function reviewIcon(label){
 }
 
 function classifyMoveQuick(beforeSnap, afterSnap, move){
+  const saved = snapshot();
   try{
     const mover = isWhite(beforeSnap.board[move.sr][move.sc]) ? 'white' : 'black';
-
-    // Very lightweight eval swing using your material eval
-    restore(beforeSnap);
-    const beforeEval = quickEvalCp();
+    const enemy = mover === 'white' ? 'black' : 'white';
 
     restore(afterSnap);
-    const afterEval = quickEvalCp();
 
-    // Convert to mover perspective
-    let delta;
-    if(mover === 'white'){
-      delta = afterEval - beforeEval;
-    } else {
-      delta = (-afterEval) - (-beforeEval);
+    const movedPiece = board[move.er][move.ec];
+    const movedValue = pieceValue(movedPiece);
+
+    const { atk, def } = countAttackersDefenders(move.er, move.ec);
+    const gaveCheck = isKingInCheck(enemy);
+    const captured = beforeSnap.board[move.er][move.ec] !== '.';
+    const castled = beforeSnap.board[move.sr][move.sc].toLowerCase() === 'k' &&
+                    Math.abs(move.ec - move.sc) === 2;
+
+    const enemyBestCapture = maxImmediateCaptureValue(enemy);
+
+    // Hanging moved piece
+    if(movedPiece !== '.' && atk > 0 && def === 0){
+      if(movedValue >= 9) return 'Blunder';
+      if(movedValue >= 5) return 'Mistake';
+      return 'Inaccuracy';
     }
 
-    const loss = -delta;
+    // Tactical punishment available immediately
+    if(enemyBestCapture >= 9) return 'Blunder';
+    if(enemyBestCapture >= 5) return 'Mistake';
+    if(enemyBestCapture >= 3) return 'Inaccuracy';
 
-    if(loss <= 20) return 'Best';
-    if(loss <= 60) return 'Good';
-    if(loss <= 120) return 'Inaccuracy';
-    if(loss <= 300) return 'Mistake';
-    return 'Blunder';
+    // Positive signals
+    if(gaveCheck) return 'Good';
+    if(castled) return 'Good';
+    if(captured) return 'Good';
+
+    // Fallback: quiet move
+    return 'Good';
   } catch(_e){
     return 'Good';
+  } finally {
+    restore(saved);
   }
 }
   
