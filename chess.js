@@ -534,21 +534,42 @@ function applyMove(sr,sc,er,ec,promoChoice){
 function undo(){
   liveReviewMark = null;
   if(!undoStack.length) return;
+
   redoStack.push(snapshot());
   restore(undoStack.pop());
-  selected=null;
-  currentPly=moveList.length;
-  render(); updateStatus(); updateEval(); redrawHistory(); updateFenBox();
+  selected = null;
+
+  currentPly = moveList.length;
+
+  // Trim future timeline so review matches the visible game branch
+  timeline = timeline.slice(0, currentPly + 1);
+
+  render();
+  updateStatus();
+  updateEval();
+  redrawHistory();
+  updateFenBox();
 }
 
 function redo(){
   liveReviewMark = null;
   if(!redoStack.length) return;
+
   undoStack.push(snapshot());
   restore(redoStack.pop());
-  selected=null;
-  currentPly=moveList.length;
-  render(); updateStatus(); updateEval(); redrawHistory(); updateFenBox();
+  selected = null;
+
+  currentPly = moveList.length;
+
+  // Rebuild timeline up to the restored state
+  timeline = timeline.slice(0, currentPly);
+  timeline.push(snapshot());
+
+  render();
+  updateStatus();
+  updateEval();
+  redrawHistory();
+  updateFenBox();
 }
 
 function gotoPly(ply){
@@ -1674,7 +1695,7 @@ async function runGameReview(){
   const results = [];
 
   try{
-    for(let i = 0; i < timeline.length - 1; i++){
+    for(let i = 0; i < currentPly; i++){
       restore(timeline[i]);
       const beforeFen = boardToFen();
       const sideToMove = turn;
