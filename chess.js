@@ -1813,7 +1813,7 @@ function renderReviewList(results){
 
     const right = document.createElement('div');
     right.className = 'small';
-    right.textContent = `Best: ${r.bestMove || '-'} | Loss: ${Math.max(0, Math.round(r.loss || 0))}`;
+    right.textContent = `Played: ${r.playedUci || '-'} | Best: ${r.bestMove || '-'} | Loss: ${Math.round(r.loss || 0)}`;
 
     row.appendChild(left);
     row.appendChild(right);
