@@ -1773,29 +1773,23 @@ function reviewIcon(label){
 }
 
 async function classifyMoveWithStockfish(beforeFen, afterFen, moverColor, playedMove){
-  const before = await analyzeFenWithStockfish(beforeFen, 180);
-  const after = await analyzeFenWithStockfish(afterFen, 180);
+  const before = await analyzeFenWithStockfish(beforeFen, 300);
+  const after = await analyzeFenWithStockfish(afterFen, 300);
 
   const beforeScore = moverColor === 'white' ? before.evalCp : -before.evalCp;
   const afterScore  = moverColor === 'white' ? after.evalCp  : -after.evalCp;
 
-  const loss = beforeScore - afterScore;
+  const loss = Math.max(0, beforeScore - afterScore);
 
   let label = 'Good';
 
   if (before.bestMove && playedMove && before.bestMove === playedMove.toLowerCase()) {
     label = 'Best';
-  } else if (Math.abs(after.evalCp) >= 9000) {
-    label = 'Best';
-  } else if (loss < 0) {
-    label = 'Best';
-  } else if (loss <= 20) {
-    label = 'Best';
-  } else if (loss <= 60) {
+  } else if (loss <= 30) {
     label = 'Good';
-  } else if (loss <= 120) {
+  } else if (loss <= 90) {
     label = 'Inaccuracy';
-  } else if (loss <= 300) {
+  } else if (loss <= 220) {
     label = 'Mistake';
   } else {
     label = 'Blunder';
